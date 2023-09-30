@@ -22,4 +22,11 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    @app.route("/")
+    def index():
+        return "Hello World"
+
+    from . import database as db
+    db.init_app(app)
+    
     return app
