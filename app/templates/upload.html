@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Upload File{% endblock title %}
+
+{% block header %}
+<h1>Penempatan Subtitle Otomatis</h1>
+{% endblock header %}
+
+{% block content %}
+<div>
+    {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+    {% endfor %}
+    <form action="/" method="post" enctype="multipart/form-data">
+        <fieldset>
+            <legend>Upload File</legend>
+            <label for="video">Upload Video (MP4/MKV):</label>
+            <input type="file" name="video" accept=".mp4, .mkv" required>
+            <br><br>
+
+            <label for="subtitle">Upload Subtitle (SRT/ASS/SRV3):</label>
+            <input type="file" name="subtitle" accept=".srt, .ass, .srv3" required>
+            <br><br>
+
+            <label for="model">Pilih Model YOLO:</label>
+            <input type="radio" name="model" value="yolov7" id="yolov7" required>
+            <label for="yolov7">YOLOv7</label>
+            <input type="radio" name="model" value="yolov7-tiny" id="yolov7-tiny" required>
+            <label for="yolov7-tiny">YOLOv7-Tiny</label>
+            <br><br>
+
+            <fieldset>
+                <legend>Opsi Lanjutan:</legend>
+
+                <label for="objectDetection">Pendeteksian Object:</label>
+                <select name="objectDetection" id="objectDetection">
+                    <option value="wajah">Wajah</option>
+                    <option value="text">Text</option>
+                    <option value="wajah_text" selected>Wajah dan Text</option>
+                </select><br>
+
+                <label for="subtitlePosition">Posisi Subtitle:</label>
+                <select name="subtitlePosition" id="subtitlePosition">
+                    <option value="tengah_atas">Tengah Atas</option>
+                    <option value="tengah_bawah" selected>Tengah Bawah</option>
+                </select><br>
+
+                <label for="fontColor">Warna Font (Kode Hex):</label>
+                <input type="text" name="fontColor" id="fontColor" value="#ffffff"><br>
+
+                <label for="transparency">Transparansi Background (%):</label>
+                <input type="number" name="transparency" id="transparency" min="0" max="100" value="100"><br>
+            </fieldset>
+
+            <input type="submit" value="Upload">
+        </fieldset>
+    </form>
+</div>
+{% endblock content %}

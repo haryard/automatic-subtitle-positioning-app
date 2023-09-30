@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS Video;
 DROP TABLE IF EXISTS Subtitle;
 DROP TABLE IF EXISTS Frame;
 DROP TABLE IF EXISTS ObjectDetectionModel;
-DROP TABLE IF EXISTS Object;
+DROP TABLE IF EXISTS ObjectDetect;
 DROP TABLE IF EXISTS Process;
 DROP TABLE IF EXISTS DetailProcess;
 
@@ -12,7 +12,7 @@ CREATE TABLE Video (
     filepath TEXT NOT NULL,
     fps INTEGER,
     width INTEGER,
-    height INTEGER,
+    height INTEGER
 );
 
 CREATE TABLE Subtitle (
@@ -23,7 +23,7 @@ CREATE TABLE Subtitle (
     font_color TEXT,
     default_position TEXT,
     bg_transparency TEXT,
-    generated_subtitle_path TEXT,
+    generated_subtitle_path TEXT
 );
 
 CREATE TABLE Frame (
@@ -40,10 +40,10 @@ CREATE TABLE Frame (
 CREATE TABLE ObjectDetectionModel (
     model_id INTEGER PRIMARY KEY,
     filename TEXT NOT NULL,
-    filePath TEXT NOT NULL,
+    filePath TEXT NOT NULL
 );
 
-CREATE TABLE Object (
+CREATE TABLE ObjectDetect (
     object_id INTEGER PRIMARY KEY,
     model_id INTEGER,
     class TEXT,
@@ -53,14 +53,13 @@ CREATE TABLE Object (
 
 CREATE TABLE Process (
     process_id INTEGER PRIMARY KEY,
-    random_url TEXT NOT NULL,
+    random_url TEXT UNIQUE NOT NULL,
     video_id INTEGER,
     subtitle_id INTEGER,
     model_id INTEGER,
     FOREIGN KEY (video_id) REFERENCES Video(video_id),
     FOREIGN KEY (subtitle_id) REFERENCES Subtitle(subtitle_id),
-    FOREIGN KEY (model_id) REFERENCES ObjectDetectionModel(model_id),
-    UNIQUE(random_url)
+    FOREIGN KEY (model_id) REFERENCES ObjectDetectionModel(model_id)
 );
 
 CREATE TABLE DetailProcess (
@@ -68,5 +67,5 @@ CREATE TABLE DetailProcess (
     process_id INTEGER,
     object_id INTEGER,
     FOREIGN KEY (process_id) REFERENCES Process(process_id),
-    FOREIGN KEY (object_id) REFERENCES Object(object_id)
+    FOREIGN KEY (object_id) REFERENCES ObjectDetect(object_id)
 );
