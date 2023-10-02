@@ -18,11 +18,11 @@ CREATE TABLE Subtitle (
     subtitle_id INTEGER PRIMARY KEY,
     filename TEXT NOT NULL,
     filepath TEXT NOT NULL,
-    processed_subtitle_path TEXT,
+    preprocessed_subtitle_path TEXT,
     font_color TEXT,
     default_position INTEGER,
     bg_transparency INTEGER,
-    generated_subtitle_path TEXT
+    positioned_subtitle_path TEXT
 );
 
 CREATE TABLE ObjectDetectionModel (
@@ -33,13 +33,13 @@ CREATE TABLE ObjectDetectionModel (
 
 CREATE TABLE Process (
     process_id INTEGER PRIMARY KEY,
-    random_url TEXT UNIQUE NOT NULL,
+    url_path TEXT UNIQUE NOT NULL,
     video_id INTEGER,
     subtitle_id INTEGER,
     model_id INTEGER,
     object_detect TEXT,
-    FOREIGN KEY (video_id) REFERENCES Video(video_id),
-    FOREIGN KEY (subtitle_id) REFERENCES Subtitle(subtitle_id),
+    FOREIGN KEY (video_id) REFERENCES Video(video_id) ON DELETE CASCADE,
+    FOREIGN KEY (subtitle_id) REFERENCES Subtitle(subtitle_id) ON DELETE CASCADE,
     FOREIGN KEY (model_id) REFERENCES ObjectDetectionModel(model_id)
 );
 

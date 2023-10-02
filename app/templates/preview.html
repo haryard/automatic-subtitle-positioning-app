@@ -1,0 +1,78 @@
+{% extends base.html %}
+
+{% block title %}{{ video_title }}{% endblock title %}
+
+{% block js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/7.0.0/mediaelement-and-player.min.js" integrity="sha512-dc+yqG2MwXXZc7vJCNdg8WNL/FyNWmtvPIBddtA1JEkjVCAdmeXPNIx6SwbGsaVRla3m+pVdeuyXUBfXTG2bmg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.slim.min.js" integrity="sha512-sNylduh9fqpYUK5OYXWcBleGzbZInWj8yCJAU57r1dpSK9tP2ghf/SRYCMj+KsslFkCOt3TvJrX2AV/Gc3wOqA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{{ url_for('static', filename='js/subtitles-octopus.js') }}"></script>
+{% endblock js %}
+
+{% block css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/7.0.0/mediaelementplayer.min.css" integrity="sha512-9dMFiFyikcX8OM6ZRtmk5DlIuaNEgtZv/abBnUMbs/rdOlYGeS/1qqCiaycA6nUFV8mW93CTUmMOvOH2Tur14Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock css %}
+
+{% block header %}
+<h1>
+    {{ video_title }}
+</h1>
+{% endblock header %}
+
+{% block content %}
+{% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+{% endfor %}
+{% if exist != 0 %}
+<video width="800" height="480" controls="controls" preload="none">
+    <source type"video/{{ extension }}" src="{{ url_for('static', filename=video_path) }}">
+    <track src="{{ url_for('static', filename=preprocessed_subtitle_path) }}" srclang="en" label="Default" kind="subtitles" type="application/x-ass">
+    <track src="{{ url_for('static', filename=positioned_subtitle_path) }}" srclang="id" label="Positioned" kind="subtitles" type="application/x-ass">
+</video>
+<br>
+<div>
+    <a href="{{ url_for('delete_file', url_path=url_path) }}">Hapus Video dan Subtitle</a>
+    <a href="{{ url_for('download_positioned_subtitle', url_path=url_path) }}">Download Subtitle</a>
+</div>
+{% endif %}
+{% endblock content %}
+
+{% block script %}
+{% if exist != 0 %}
+<script>
+    mejs.i18n.language('en');
+
+    $('video').mediaelementplayer({
+        success: function (player, node) {
+            var video = node;
+            player.addEventListener('captionschange', function(e) {
+                console.log('Charging Track ' + e.detail.caption);
+                if (e.detail.caption !== null) {
+                    if (window.octopusInstance) {
+                        window.octopusInstance.setTrackByUrl(e.detail.caption.src);
+                    } else if (SubtitlesOctopus) {
+                        var options = {
+                            video: video,
+                            subUrl: e.detail.caption.src,
+                            //fonts: ['/fonts/CabinCondensed-Regular.ttf', '/fonts/SourceSansPro-SemiBold.ttf'],
+                            //onReady: onReadyFunction,
+                            debug: true,
+                            workerUrl: "{{ url_for('static', filename='js/subtitles-octopus-worker.js') }}",
+                            legacyWorkerUrl: "{{ url_for('static', filename='js/subtitles-octopus-worker-legacy.js') }}"
+                        };
+                        window.octopusInstance = new SubtitlesOctopus(options);
+                    }
+                } else {
+                    if (SubtitlesOctopus || window.octopusInstance) {
+                        console.log('Disable Track ' + e.detail.caption);
+                        window.octopusInstance.freeTrack();
+                    }
+                }
+            });
+
+            $(player).closest('.mejs__container').attr('lang', mejs.i18n.language());
+            $('html').attr('lang', mejs.i18n.language());
+        }
+    });
+</script>
+{% endif %}
+{% endblock script %}

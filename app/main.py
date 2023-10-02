@@ -1,8 +1,7 @@
 import os
 import secrets
-import functools
 
-from flask import Blueprint, flash, g, redirect, render_template, request, current_app, session, url_for
+from flask import Blueprint, flash, g, redirect, render_template, request, current_app, url_for
 from werkzeug.utils import secure_filename
 from app.db import get_db
 from app.utils import subtitle, video, objectDetection
@@ -13,7 +12,7 @@ bp = Blueprint('main', __name__)
 def generate_unique_random_url(db):
     while True:
         random_url = secrets.token_hex(5)
-        count = db.execute("SELECT COUNT(*) FROM Process WHERE random_url = ?", (random_url,)).fetchone()[0]
+        count = db.execute("SELECT COUNT(*) FROM Process WHERE url_path = ?", (random_url,)).fetchone()[0]
         if count == 0: return random_url
         
 def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_frames, default_pos, base_path, model_path, class_list):
@@ -25,7 +24,7 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     sub_pos_path = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
     
     db.execute("UPDATE Video SET frames_path = ?, labels_path = ? WHERE filepath = ?", (frames_path, labels_path, video_path))
-    db.execute("UPDATE Subtitle SET generated_subtitle_path = ? WHERE filepath = ?", (sub_pos_path, subtitle_path))
+    db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE filepath = ?", (sub_pos_path, subtitle_path))
     db.commit()
     
 
@@ -54,8 +53,8 @@ def index():
         
         video_name    = secure_filename(video.filename)
         subtitle_name = secure_filename(subtitle.filename)
-        rand_url      = generate_unique_random_url(db)
-        base_path     = os.path.join("static", "uploads", rand_url)
+        url_path      = generate_unique_random_url(db)
+        base_path     = os.path.join("static", "uploads", url_path)
         video_path    = os.path.join(base_path, "video", video_name)
         subtitle_path = os.path.join(base_path, "subtitle", subtitle_name)
         
@@ -68,11 +67,11 @@ def index():
         height = video.get_height(video_path)
         
         # subtitle part
-        processed_subtitle_path = subtitle.process_convert_to_ass(subtitle_path)
-        subtitle_frames = subtitle.process_frames_from_subtitle(subtitle_path, fps)
+        preprocessed_subtitle_path = subtitle.process_convert_to_ass(subtitle_path)
+        subtitle_frames            = subtitle.process_frames_from_subtitle(subtitle_path, fps)
         
         db.execute("INSERT INTO Video (filename, filepath, fps, width, height) VALUES (?, ?, ?, ?, ?)", (video_name, video_path, fps, width, height))
-        db.execute("INSERT INTO Subtitle (filename, filepath, processed_subtitle_path, font_color, default_position, bg_transparency) VALUES (?, ?, ?, ?, ?, ?)", (subtitle_name, subtitle_path, processed_subtitle_path, fontColor, subtitlePos, bgTrans))
+        db.execute("INSERT INTO Subtitle (filename, filepath, preprocessed_subtitle_path, font_color, default_position, bg_transparency) VALUES (?, ?, ?, ?, ?, ?)", (subtitle_name, subtitle_path, preprocessed_subtitle_path, fontColor, subtitlePos, bgTrans))
         db.commit()
         
         modeldb    = db.execute('SELECT * FROM ObjectDetectionModel WHERE name = ?', (odmodel,)).fetchall()
@@ -81,10 +80,10 @@ def index():
         model_path = os.path.join(current_app.root_path, modeldb['filepath'])
         
         # run this in background
-        executor.submit_stored(rand_url, extract_detect_all_subtitle_frame, video_path, subtitle_path, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+        executor.submit_stored(url_path, extract_detect_all_subtitle_frame, video_path, subtitle_path, subtitle_frames, subtitlePos, base_path, model_path, objectList)
         
-        db.execute("INSERT INTO Process (random_url, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (rand_url, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], ','.join([obj for obj in objectList])))
+        db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], ','.join([obj for obj in objectList])))
         db.commit()
-        flash(f"Video sedang diproses cek progress di { url_for('preview', random_url=rand_url) }")
+        flash(f"Video sedang diproses cek progress di { url_for('preview', url_path=url_path) }")
     return render_template("upload.html")
 

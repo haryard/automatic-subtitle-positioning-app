@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Penempatan Subtitle Otomatis - {% block title %}{% endblock title %}</title>
+    {% block css %}{% endblock css %}
+    {% block js %}{% endblock js %}
 </head>
 <body>
     <header>
         {% block header %}{% endblock header %}
     </header>
-    {% block content %}{% endblock content %}
+    <content>
+        {% block content %}{% endblock content %}
+    </content>
+    {% block script %}{% endblock script %}
 </body>
 </html>
