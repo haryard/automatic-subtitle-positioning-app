@@ -1,11 +1,8 @@
 import os
 import shutil
 
-from flask import Blueprint, flash, g, redirect, render_template, request, current_app, url_for, send_file
-from werkzeug.utils import secure_filename
+from flask import Blueprint, flash, g, redirect, render_template, current_app, url_for, send_file
 from app.db import get_db
-from app.utils import subtitle, video, objectDetection
-from app.extension import executor
 
 bp = Blueprint('preview', __name__, url_prefix="/preview")
 
@@ -21,7 +18,7 @@ def preview_video(url_path):
         'FROM Process AS p'
         'JOIN Video AS v ON p.video_id = v.video_id'
         'JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id'
-        'WHERE p.url_path = ?', (url_path)).fetchall()
+        'WHERE p.url_path = ?', (url_path)).fetchone()
         
         video_name = data_db['v.filename']
         video_ext  = os.path.splitext(data_db['v.filepath'])
@@ -69,5 +66,5 @@ def download_positioned_subtitle(url_path):
         data_db = db.execute('SELECT s.positioned_subtitle_path'
         'FROM Process AS p'
         'JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id'
-        'WHERE p.url_path = ?', (url_path)).fetchall()
+        'WHERE p.url_path = ?', (url_path)).fetchone()
         return send_file(data_db['s.positioned_subtitle_path'], as_attachment=True)

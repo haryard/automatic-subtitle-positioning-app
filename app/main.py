@@ -74,9 +74,9 @@ def index():
         db.execute("INSERT INTO Subtitle (filename, filepath, preprocessed_subtitle_path, font_color, default_position, bg_transparency) VALUES (?, ?, ?, ?, ?, ?)", (subtitle_name, subtitle_path, preprocessed_subtitle_path, fontColor, subtitlePos, bgTrans))
         db.commit()
         
-        modeldb    = db.execute('SELECT * FROM ObjectDetectionModel WHERE name = ?', (odmodel,)).fetchall()
-        videodb    = db.execute('SELECT * FROM Video WHERE filepath = ?', (video_path,)).fetchall()
-        subtitledb = db.execute('SELECT * FROM Subtitle WHERE filepath = ?', (subtitle_path,)).fetchall()
+        modeldb    = db.execute('SELECT * FROM ObjectDetectionModel WHERE name = ?', (odmodel,)).fetchone()
+        videodb    = db.execute('SELECT * FROM Video WHERE filepath = ?', (video_path,)).fetchone()
+        subtitledb = db.execute('SELECT * FROM Subtitle WHERE filepath = ?', (subtitle_path,)).fetchone()
         model_path = os.path.join(current_app.root_path, modeldb['filepath'])
         
         # run this in background
