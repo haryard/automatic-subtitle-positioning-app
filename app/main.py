@@ -28,7 +28,7 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     db.commit()
     
 
-@bp.route("/", methods=('GET', 'POST'))
+@bp.route("/upload", methods=('GET', 'POST'))
 def index():
     db = get_db()
     if request.method == 'POST':

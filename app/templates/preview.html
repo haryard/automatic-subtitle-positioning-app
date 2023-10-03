@@ -2,15 +2,14 @@
 
 {% block title %}{{ video_title }}{% endblock title %}
 
-{% block js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/7.0.0/mediaelement-and-player.min.js" integrity="sha512-dc+yqG2MwXXZc7vJCNdg8WNL/FyNWmtvPIBddtA1JEkjVCAdmeXPNIx6SwbGsaVRla3m+pVdeuyXUBfXTG2bmg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.slim.min.js" integrity="sha512-sNylduh9fqpYUK5OYXWcBleGzbZInWj8yCJAU57r1dpSK9tP2ghf/SRYCMj+KsslFkCOt3TvJrX2AV/Gc3wOqA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="{{ url_for('static', filename='js/subtitles-octopus.js') }}"></script>
-{% endblock js %}
-
 {% block css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/7.0.0/mediaelementplayer.min.css" integrity="sha512-9dMFiFyikcX8OM6ZRtmk5DlIuaNEgtZv/abBnUMbs/rdOlYGeS/1qqCiaycA6nUFV8mW93CTUmMOvOH2Tur14Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 {% endblock css %}
+
+{% block js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mediaelement/7.0.0/mediaelement-and-player.min.js" integrity="sha512-dc+yqG2MwXXZc7vJCNdg8WNL/FyNWmtvPIBddtA1JEkjVCAdmeXPNIx6SwbGsaVRla3m+pVdeuyXUBfXTG2bmg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{{ url_for('static', filename='js/subtitles-octopus.js') }}"></script>
+{% endblock js %}
 
 {% block header %}
 <h1>
