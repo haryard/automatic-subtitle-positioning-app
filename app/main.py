@@ -69,6 +69,8 @@ def index():
         # subtitle part
         preprocessed_subtitle_path = subtitle.process_convert_to_ass(subtitle_path)
         subtitle_frames            = subtitle.process_frames_from_subtitle(subtitle_path, fps)
+        # set subtitle style
+        subtitle.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
         
         db.execute("INSERT INTO Video (filename, filepath, fps, width, height) VALUES (?, ?, ?, ?, ?)", (video_name, video_path, fps, width, height))
         db.execute("INSERT INTO Subtitle (filename, filepath, preprocessed_subtitle_path, font_color, default_position, bg_transparency) VALUES (?, ?, ?, ?, ?, ?)", (subtitle_name, subtitle_path, preprocessed_subtitle_path, fontColor, subtitlePos, bgTrans))
@@ -80,7 +82,7 @@ def index():
         model_path = os.path.join(current_app.root_path, modeldb['filepath'])
         
         # run this in background
-        executor.submit_stored(url_path, extract_detect_all_subtitle_frame, video_path, subtitle_path, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+        executor.submit_stored(url_path, extract_detect_all_subtitle_frame, video_path, preprocessed_subtitle_path, subtitle_frames, subtitlePos, base_path, model_path, objectList)
         
         db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], ','.join([obj for obj in objectList])))
         db.commit()

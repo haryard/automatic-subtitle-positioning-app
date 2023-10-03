@@ -289,8 +289,23 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
         # positioning subtitle
         ass_tag   = get_postioned_ass_tags(possible_position, position, sub_width, sub_height, margin_x)
         line.text = f"{{ {ass_tag} }}{line.text}"
-        if len(order_pos) == 0: line.style = "base"
+        if len(order_pos) == 0: line.style = "base-bg"
         else: line.style = "base"
 
     positioned_subtitle.save(f'{sub_dir}/{sub_name}_positioned.ass')
     return f'{sub_dir}/{sub_name}_positioned.ass'
+
+def set_style(subtitle_path: str, font_color: str, background_transparency: int):
+    subtitle = pysubs2.load(subtitle_path)
+    fontr, fontg, fontb, bgalpha = hex_to_rgba(font_color, background_transparency)
+    
+    style_1 = subtitle.styles["base"].copy()
+    style_2 = subtitle.styles["base-bg"].copy()
+    style_1.primarycolor = pysubs2.Color(fontr,fontg,fontb)
+    style_2.primarycolor = pysubs2.Color(fontr,fontg,fontb)
+    style_2.backcolor    = pysubs2.Color(0,0,0,bgalpha)
+    
+    subtitle.styles["base"]    = style_1
+    subtitle.styles["base-bg"] = style_2 
+    
+    
