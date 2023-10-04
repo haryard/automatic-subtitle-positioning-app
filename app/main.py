@@ -29,7 +29,7 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     
 
 @bp.route("/upload", methods=('GET', 'POST'))
-def index():
+def upload():
     db = get_db()
     if request.method == 'POST':
         if ('video' or 'subtitle') not in request.files:
@@ -46,7 +46,7 @@ def index():
             return redirect(request.url)
             
         odmodel       = request.form['model']
-        objectList    = [int(objectClass) for objectClass in request.form['objectDetection'].split(',')]
+        objectList    = [int(objectClass) for objectClass in request.form.getlist('objectDetection')]
         subtitlePos   = int(request.form['subtitlePosition'])
         fontColor     = request.form['fontColor']
         bgTrans       = int(request.form['transparency'])

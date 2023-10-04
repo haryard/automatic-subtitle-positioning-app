@@ -307,5 +307,6 @@ def set_style(subtitle_path: str, font_color: str, background_transparency: int)
     
     subtitle.styles["base"]    = style_1
     subtitle.styles["base-bg"] = style_2 
+    subtitle.save(subtitle_path)
     
     

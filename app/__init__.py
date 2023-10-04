@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, render_template, request, jsonify
 from app import db
 from app import main
 from app import preview
@@ -33,5 +33,9 @@ def create_app(test_config=None):
     executor.init_app(app)
     app.register_blueprint(main.bp)
     app.register_blueprint(preview.bp)
+    
+    @app.route('/')
+    def index_test():
+        return render_template('index.html')
     
     return app

@@ -24,13 +24,78 @@
 {% if exist != 0 %}
 <video width="800" height="480" controls="controls" preload="none">
     <source type"video/{{ extension }}" src="{{ url_for('static', filename=video_path) }}">
-    <track src="{{ url_for('static', filename=preprocessed_subtitle_path) }}" srclang="en" label="Default" kind="subtitles" type="application/x-ass">
-    <track src="{{ url_for('static', filename=positioned_subtitle_path) }}" srclang="id" label="Positioned" kind="subtitles" type="application/x-ass">
+    <track src="{{ url_for('static', filename=preprocessed_subtitle_path) }}" srclang="en" label="Default" kind="subtitles" id="default_sub" type="application/x-ass">
+    <track src="{{ url_for('static', filename=positioned_subtitle_path) }}" srclang="id" label="Positioned" kind="subtitles" id="positioned_sub" type="application/x-ass">
 </video>
 <br>
 <div>
-    <a href="{{ url_for('delete_file', url_path=url_path) }}">Hapus Video dan Subtitle</a>
-    <a href="{{ url_for('download_positioned_subtitle', url_path=url_path) }}">Download Subtitle</a>
+    <a href="{{ url_for('delete_file', url_path=url_path) }}" class="btn btn-outline-danger" id="deleteFileBtn">Hapus Video dan Subtitle</a>
+    <a href="{{ url_for('download_positioned_subtitle', url_path=url_path) }}" class="btn btn-outline-success" id="downloadSubBtn">Download Subtitle</a>
+    <button type="button" class="btn btn-outline-info" data-toggle="modal" id="showEditFormBtn">Edit Subtitle</button>
+
+    <div class="modal fade" id="editFormModal" data-backdrop="static" data-keyboard="true" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <form id="editForm" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="staticBackdropLabel">Edit Subtitle</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group row">
+                            <label class="col" for="objectDetection">Object yang dihindari:</label>
+                            <div class="col">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="objectFace" name="objectDetection" value="0">
+                                    <label class="custom-control-label" for="objectFace">Wajah</label>
+                                </div>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="objectText" name="objectDetection" value="1">
+                                    <label class="custom-control-label" for="objectText">Text</label>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="form-group row">
+                            <label class="col" for="subtitlePosition">Posisi Subtitle:</label>
+                            <div class="col">
+                                <select class="custom-select" name="subtitlePosition" id="subtitlePosition">
+                                    <option value="0">Tengah Atas</option>
+                                    <option value="1" selected>Tengah Bawah</option>
+                                </select>
+                            </div>
+                        </div>
+    
+                        <div class="form-group row">
+                            <label class="col" for="fontColor">Warna Font (Kode Hex):</label>
+                            <div class="col">
+                                <div class="input-group">
+                                    <input class="form-control col-9" type="text" name="fontColorText" id="fontColorText" value="#ffffff">
+                                    <input class="form-control col-3" type="color" name="fontColor" id="fontColor" value="#ffffff">
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="form-group row">
+                            <label class="col" for="transparency">Transparansi Background:</label>
+                            <div class="col input-group">
+                                <input class="form-control" type="number" name="transparency" id="transparency" min="0" max="100" value="100">
+                                <div class="input-group-append">
+                                    <label class="input-group-text">%</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endif %}
 {% endblock content %}
@@ -71,6 +136,68 @@
             $(player).closest('.mejs__container').attr('lang', mejs.i18n.language());
             $('html').attr('lang', mejs.i18n.language());
         }
+    });
+
+    $(document).ready(function() {
+        $("#showEditFormBtn").click(function() {
+            event.preventDefault();
+            $.ajax({
+                type: "GET",
+                url: "{{ url_for (get_subtitle_data, url_path=url_path)}}",
+                success: function(response){
+                    var objectDetection = response.object;
+                    var subtitlePosition = response.position;
+                    var fontColor = response.color;
+                    var transparency = response.transparency;
+
+                    $('input[type="checkbox"][name="objectDetection"]').each(function(){
+                        $(this).prop('checked', false);
+                    })
+                    $('input[type="checkbox"][name="objectDetection"]').each(function() {
+                        var checkbox = $(this);
+                        $.each(objectDetection, function(index, val){
+                            if (parseInt(checkbox.val()) == val) {
+                                checkbox.prop('checked', true);
+                            }
+                        })
+                    });
+                    $("#subtitlePosition").val(subtitlePosition);
+                    $("#fontColor").val(fontColor);
+                    $("#fontColorText").val(fontColor);
+                    $("#transparency").val(transparency);
+                    $("#editFormModal").modal('show');
+                }
+            })
+        });
+
+        $("#editForm").submit(function(event) {
+            event.preventDefault();
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for (process_subtitle_edit, url_path=url_path)}}",
+                data: $("#editForm").serialize(),
+                success: function(response) {
+                    $("#editFormModal").modal('hide');
+                    $("#positioned_sub").attr("src", response);
+                }
+            });
+        });
+
+        function isHexColor(value) {
+            return /^#[0-9A-Fa-f]{6}$/i.test(value);
+        }
+        $("#fontColor").change(function() {
+            var selectedColor = $("#fontColor").val();
+            $("#fontColorText").val(selectedColor);
+        });
+
+        $("#fontColorText").on("input", function() {
+            var hexValue = $(this).val();
+            if (!isHexColor(hexValue)) {
+                hexValue = "#ffffff";
+            }
+            $("#fontColor").val(hexValue);
+        });
     });
 </script>
 {% endif %}

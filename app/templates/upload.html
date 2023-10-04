@@ -2,59 +2,121 @@
 {% block title %}Upload File{% endblock title %}
 
 {% block header %}
-<h1>Penempatan Subtitle Otomatis</h1>
+{% include "navbar.html" %}
 {% endblock header %}
 
 {% block content %}
-<div>
+<div class="container">
     {% for message in get_flashed_messages() %}
-    <div class="flash">{{ message }}</div>
+    <div class="flash alert-info alert-dismissible fade show">{{ message }}</div>
     {% endfor %}
+    <div class="border p-4 mx-auto mt-3">
     <form action="/upload" method="post" enctype="multipart/form-data">
-        <fieldset>
-            <legend>Upload File</legend>
-            <label for="video">Upload Video (MP4/MKV):</label>
-            <input type="file" name="video" accept=".mp4, .mkv" required>
-            <br><br>
+            <h3>Unggah Berkas</h3>
+            <hr>
+            <div class="form-group row">
+                <div class="col-md mt-2">
+                    <label for="video">Video (MP4/MKV/WEBM)</label>
+                    <br>
+                    <div class="custom-file">
+                        <input class="custom-file-input" type="file" name="video" accept=".mp4, .mkv, .webm" required>
+                        <label class="custom-file-label" for="video">Pilih berkas video</label>
+                    </div>
+                </div>
+                <div class="col-md mt-2">
+                    <label for="subtitle">Subtitle (SRT/ASS/SRV3/VTT)</label>
+                    <br>
+                    <div class="custom-file">
+                        <input class="custom-file-input" type="file" name="subtitle" accept=".srt, .ass, .srv3, .vtt" required>
+                        <label class="custom-file-label" for="video">Pilih berkas subtitle</label>
+                    </div>
+                </div>
+            </div>
 
-            <label for="subtitle">Upload Subtitle (SRT/ASS/SRV3):</label>
-            <input type="file" name="subtitle" accept=".srt, .ass, .srv3" required>
-            <br><br>
+            <div class="form-group row">
+                <div class="col-auto">
+                    <label for="model">Model Pendeteksian Objek:</label>
+                </div>
+                <div class="col-md-auto">
+                    <div class="custom-control custom-radio">
+                        <input class="custom-control-input" type="radio" name="model" value="yolov7" id="yolov7" required>
+                        <label class="custom-control-label" for="yolov7">YOLOv7</label>
+                    </div>
+                    <div class="custom-control custom-radio">
+                        <input class="custom-control-input" type="radio" name="model" value="yolov7-tiny" id="yolov7-tiny" required>
+                        <label class="custom-control-label" for="yolov7-tiny" selected>YOLOv7-tiny</label>
+                    </div>
+                </div>
+            </div>
 
-            <label for="model">Pilih Model YOLO:</label>
-            <input type="radio" name="model" value="yolov7" id="yolov7" required>
-            <label for="yolov7">YOLOv7</label>
-            <input type="radio" name="model" value="yolov7-tiny" id="yolov7-tiny" required>
-            <label for="yolov7-tiny">YOLOv7-Tiny</label>
-            <br><br>
+            <div class="form-group">
+                <p>
+                    <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" data-target="#advancedOption" aria-expanded="false" aria-controls="advancedOption">
+                        Buka Opsi Tambahan
+                    </button>
+                </p>
+            </div>
+            <div class="form-group">
+                <div class="collapse" id="advancedOption">
+                    <div class="card">
+                        <div class="card-header">Opsi Tambahan</div>
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="objectDetection">Object yang dihindari:</label>
+                                <div class="col-md-7 col-lg-9">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="objectFace" name="objectDetection" value="0" checked>
+                                        <label class="custom-control-label" for="objectFace">Wajah</label>
+                                    </div>
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="objectText" name="objectDetection" value="1" checked>
+                                        <label class="custom-control-label" for="objectText">Text</label>
+                                    </div>
+                                </div>
+                            </div>
 
-            <fieldset>
-                <legend>Opsi Lanjutan:</legend>
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="subtitlePosition">Posisi Subtitle:</label>
+                                <div class="col-md-7 col-lg-9">
+                                    <select class="custom-select" name="subtitlePosition" id="subtitlePosition">
+                                        <option value="0">Tengah Atas</option>
+                                        <option value="1" selected>Tengah Bawah</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                <label for="objectDetection">Pendeteksian Object:</label>
-                <select name="objectDetection" id="objectDetection">
-                    <option value="0">Wajah</option>
-                    <option value="1">Text</option>
-                    <option value="0,1" selected>Wajah dan Text</option>
-                </select><br>
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="fontColor">Warna Font (Kode Hex):</label>
+                                <div class="col-md-7 col-lg-9">
+                                    <div class="input-group">
+                                        <input class="form-control col-10 col-lg-11" type="text" name="fontColorText" id="fontColorText" value="#ffffff">
+                                        <input class="form-control col-2 col-lg-1" type="color" name="fontColor" id="fontColor" value="#ffffff">
+                                    </div>
+                                </div>
+                            </div>
 
-                <label for="subtitlePosition">Posisi Subtitle:</label>
-                <select name="subtitlePosition" id="subtitlePosition">
-                    <option value="1">Tengah Atas</option>
-                    <option value="1" selected>Tengah Bawah</option>
-                </select><br>
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="transparency">Transparansi Background:</label>
+                                <div class="col-md-7 col-lg-9 input-group">
+                                    <input class="form-control" type="number" name="transparency" id="transparency" min="0" max="100" value="100">
+                                    <div class="input-group-append">
+                                        <label class="input-group-text">%</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
 
-                <label for="fontColor">Warna Font (Kode Hex):</label>
-                <input type="text" name="fontColorText" id="fontColorText" value="#ffffff">
-                <input type="color" name="fontColor" id="fontColor" value="#ffffff"><br>
-
-                <label for="transparency">Transparansi Background (%):</label>
-                <input type="number" name="transparency" id="transparency" min="0" max="100" value="100"><br>
-            </fieldset>
-
-            <input type="submit" value="Upload">
-        </fieldset>
-    </form>
+            <div class="form-group row justify-content-end">
+                <div class="col-auto">
+                    <input class="btn btn-primary m-2 py-2 px-3" type="submit" value="Unggah">
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock content %}
 
