@@ -26,7 +26,7 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     db.execute("UPDATE Video SET frames_path = ?, labels_path = ? WHERE filepath = ?", (frames_path, labels_path, video_path))
     db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE filepath = ?", (sub_pos_path, subtitle_path))
     db.commit()
-    
+
 
 @bp.route("/upload", methods=('GET', 'POST'))
 def upload():
@@ -89,3 +89,6 @@ def upload():
         flash(f"Video sedang diproses cek progress di { url_for('preview', url_path=url_path) }")
     return render_template("upload.html")
 
+@bp.route('/youtube', method=("GET", "POST"))
+def youtube():
+    return render_template("youtube.html")

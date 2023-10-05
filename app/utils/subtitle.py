@@ -206,7 +206,7 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
                 bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
                 bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
                 iou = calculate_iou(bbox_pos, bbox_obj)
-                if iou > 0.0: list_iou.append(iou)
+                if iou > 0.001: list_iou.append(iou)
             if len(list_iou) == 0: break
             else: average_iou = sum(list_iou) / len(list_iou)
             if len(order_pos) == 0 or len(list_iou) == 0: break
@@ -223,7 +223,7 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
                     bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
                     bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
                     iou = calculate_iou(bbox_pos, bbox_obj)
-                    prob_frame.append(iou)
+                    if iou > 0.001: prob_frame.append(iou)
             prob_pos[pos] = prob_frame
         for pos in list(sub_pos.keys()):
             new_average_iou = sum(prob_pos[pos]) / len(prob_pos[pos])
@@ -258,7 +258,7 @@ def get_postioned_ass_tags(sub_pos: list, position: int, width:int, height: int,
     ass_tags = f"{an_tag}{pos_tag}"
     return ass_tags
 
-def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, default_pos: int, class_selected: list, font_color: str, background_transparency: int):
+def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, default_pos: int, class_selected: list):
     # parsing subtitle name and dir
     sub_dir  = os.path.dirname(subtitle_path)
     sub_name = os.path.splitext(os.path.basename(subtitle_path))[0]
@@ -267,7 +267,6 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
     subtitle                     = pysubs2.load(subtitle_path)
     positioned_subtitle          = subtitle
     sub_width, sub_height        = int(subtitle.info['PlayResX']), int(subtitle.info['PlayResY'])
-    fontr, fontg, fontb, bgalpha = hex_to_rgba(font_color, background_transparency)
     margin_x, margin_y           = positioned_subtitle.styles["base"].marginl, positioned_subtitle.styles["base"].marginv
 
     # set subtitle position
