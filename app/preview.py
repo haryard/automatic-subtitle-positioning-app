@@ -92,7 +92,7 @@ def get_subtitle_data(url_path):
         }
         return jsonify(data)
     
-@bp.route('/process_subtitle_edit/<url_path>', methods='POST')
+@bp.route('/process_subtitle_edit/<url_path>', methods=['POST'])
 def process_subtitle_edit(url_path):
     db = get_db()
     check_url = db.execute("SELECT COUNT(*) FROM Process WHERE random_url = ?", (url_path)).fetchone()[0]

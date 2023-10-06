@@ -7,29 +7,32 @@
 
 {% block content %}
 <div class="container">
-    {% for message in get_flashed_messages() %}
-    <div class="flash alert-info alert-dismissible fade show">{{ message }}</div>
-    {% endfor %}
     <div class="border p-4 mx-auto mt-3">
-    <form action="/upload" method="post" enctype="multipart/form-data">
-            <h3>Unggah Berkas</h3>
-            <hr>
+        <h3>Unggah Berkas</h3>
+        {% for message in get_flashed_messages() %}
+        <hr>
+        <div class="alert {{ message_type }} alert-dismissible fade show">{{ message }}</div>
+        {% endfor %}
+        <hr>
+        <form action="/upload" method="post" enctype="multipart/form-data">
             <div class="form-group row">
                 <div class="col-md mt-2">
-                    <label for="video">Video (MP4/MKV/WEBM)</label>
+                    <label for="video">Video</label>
                     <br>
                     <div class="custom-file">
                         <input class="custom-file-input" type="file" name="video" accept=".mp4, .mkv, .webm" required>
                         <label class="custom-file-label" for="video">Pilih berkas video</label>
                     </div>
+                    <small class="form-text text-muted">Format file yang dapat diproses MP4, MKV, dan WEBM</small>
                 </div>
                 <div class="col-md mt-2">
-                    <label for="subtitle">Subtitle (SRT/ASS/SRV3/VTT)</label>
+                    <label for="subtitle">Subtitle</label>
                     <br>
                     <div class="custom-file">
                         <input class="custom-file-input" type="file" name="subtitle" accept=".srt, .ass, .srv3, .vtt" required>
                         <label class="custom-file-label" for="video">Pilih berkas subtitle</label>
                     </div>
+                    <small class="form-text text-muted">Format file yang dapat diproses SRT, ASS, SRV3, dan VTT<br>Catatan: Jika subtitle berasal dari subtitle otomatis di Youtube, maka gunakan format SRV3</small>
                 </div>
             </div>
 
@@ -40,11 +43,11 @@
                 <div class="col-md-auto">
                     <div class="custom-control custom-radio">
                         <input class="custom-control-input" type="radio" name="model" value="yolov7" id="yolov7" required>
-                        <label class="custom-control-label" for="yolov7">YOLOv7</label>
+                        <label class="custom-control-label" for="yolov7">YOLOv7 <button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Proses lebih lambat namun akurasi pendeteksian lebih akurat.">?</button></label>
                     </div>
                     <div class="custom-control custom-radio">
                         <input class="custom-control-input" type="radio" name="model" value="yolov7-tiny" id="yolov7-tiny" required>
-                        <label class="custom-control-label" for="yolov7-tiny" selected>YOLOv7-tiny</label>
+                        <label class="custom-control-label" for="yolov7-tiny" selected>YOLOv7-tiny <button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Proses lebih cepat namun akurasi pendeteksian kurang akurat.">?</button></label>
                     </div>
                 </div>
             </div>
@@ -62,7 +65,7 @@
                         <div class="card-header">Opsi Tambahan</div>
                         <div class="card-body">
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="objectDetection">Object yang dihindari:</label>
+                                <label class="col-md-5 col-lg-3" for="objectDetection">Object yang dihindari:<button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Objek yang akan dihindari oleh subtitle.">?</button></label>
                                 <div class="col-md-7 col-lg-9">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="objectFace" name="objectDetection" value="0" checked>
@@ -76,7 +79,7 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="subtitlePosition">Posisi Subtitle:</label>
+                                <label class="col-md-5 col-lg-3" for="subtitlePosition">Posisi Subtitle:<button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Posisi default dimana subtitle akan ditempatkan.">?</button></label>
                                 <div class="col-md-7 col-lg-9">
                                     <select class="custom-select" name="subtitlePosition" id="subtitlePosition">
                                         <option value="0">Tengah Atas</option>
@@ -86,17 +89,20 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="fontColor">Warna Font (Kode Hex):</label>
+                                <label class="col-md-5 col-lg-3" for="fontColor">Warna Font:</label>
                                 <div class="col-md-7 col-lg-9">
                                     <div class="input-group">
-                                        <input class="form-control col-10 col-lg-11" type="text" name="fontColorText" id="fontColorText" value="#ffffff">
-                                        <input class="form-control col-2 col-lg-1" type="color" name="fontColor" id="fontColor" value="#ffffff">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">#</span>
+                                        </div>
+                                        <input class="form-control col-11" type="text" name="fontColorText" id="fontColorText" value="ffffff">
+                                        <input class="form-control col-1" type="color" name="fontColor" id="fontColor" value="#ffffff">
                                     </div>
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="transparency">Transparansi Background:</label>
+                                <label class="col-md-5 col-lg-3" for="transparency">Transparansi Background: <button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Warna background dari subtitle saat tidak ada posisi kosong dalam video untuk ditempati subtitle.">?</button></label>
                                 <div class="col-md-7 col-lg-9 input-group">
                                     <input class="form-control" type="number" name="transparency" id="transparency" min="0" max="100" value="100">
                                     <div class="input-group-append">
@@ -122,23 +128,22 @@
 
 {% block script %}
 <script>
-    $(document).ready(function() {
-        updateTextValue();
-        updateColorValue();
-    });
     function isHexColor(value) {
         return /^#[0-9A-Fa-f]{6}$/i.test(value);
     }
-    $("#fontColor").change(function() {
-        var selectedColor = $("#fontColor").val();
-        $("#fontColorText").val(selectedColor);
+    $(document).ready(function() {
+        $("#fontColor").change(function() {
+            var selectedColor = $("#fontColor").val();
+            $("#fontColorText").val(selectedColor.replace("#", ""));
+        });
+        $("#fontColorText").on("input", function() {
+            var hexValue = "#" +  $(this).val();
+            if (!isHexColor(hexValue)) {
+                hexValue = "#ffffff";
+            }
+            $("#fontColor").val(hexValue);
+        });
     });
-    $("#fontColorText").on("input", function() {
-        var hexValue = $(this).val();
-        if (!isHexColor(hexValue)) {
-            hexValue = "#ffffff";
-        }
-        $("#fontColor").val(hexValue);
-    });
+
 </script>
 {% endblock script %}

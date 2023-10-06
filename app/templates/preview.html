@@ -72,7 +72,10 @@
                             <label class="col" for="fontColor">Warna Font (Kode Hex):</label>
                             <div class="col">
                                 <div class="input-group">
-                                    <input class="form-control col-9" type="text" name="fontColorText" id="fontColorText" value="#ffffff">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">#</span>
+                                    </div>
+                                    <input class="form-control col-9" type="text" name="fontColorText" id="fontColorText" value="ffffff">
                                     <input class="form-control col-3" type="color" name="fontColor" id="fontColor" value="#ffffff">
                                 </div>
                             </div>
@@ -188,11 +191,11 @@
         }
         $("#fontColor").change(function() {
             var selectedColor = $("#fontColor").val();
-            $("#fontColorText").val(selectedColor);
+            $("#fontColorText").val(selectedColor.replace("#", ""));
         });
 
         $("#fontColorText").on("input", function() {
-            var hexValue = $(this).val();
+            var hexValue = "#" + $(this).val();
             if (!isHexColor(hexValue)) {
                 hexValue = "#ffffff";
             }
