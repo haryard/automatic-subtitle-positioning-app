@@ -204,12 +204,9 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
               bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
               iou = calculate_iou(bbox_pos, bbox_obj)
               if iou >= 0.01: list_iou.append(iou)
-          if len(list_iou) > 0: 
-            average_iou = sum(list_iou) / len(list_iou)
-            if average_iou > 0: break
-            else: continue
+          if len(list_iou) > 0: continue
           else: break
-        if len(order_pos) == 0 or len(list_iou) == 0 or average_iou > 0: break
+        if len(order_pos) == 0 or len(list_iou) == 0: break
     if len(order_pos) > 0:
         position = pos
     # check probability of each position if all area detected set set position to the lowest average iou position
@@ -222,8 +219,8 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
                     bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
                     bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
                     iou = calculate_iou(bbox_pos, bbox_obj)
-                    if iou > 0.01: prob_frame.append(iou)
-            if len(prob_frame) != 0: average_iou = sum(prob_frame) / len(prob_frame)
+                    if iou >= 0.01: prob_frame.append(iou)
+            if len(prob_frame) > 0: average_iou = sum(prob_frame) / len(prob_frame)
             else: average_iou = 0
             prob_pos[pos] = average_iou
         position = min(prob_pos, key=prob_pos.get)
