@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block header %}
+{% include "navbar.html" %}
+{% endblock header %}
+
+{% block content %}
+<div class="container">
+    <div class="border p-4 mx-auto mt-3">
+        <h3>Unggah dari Youtube</h3>
+        {% for message in get_flashed_messages() %}
+        <div class="alert {{ message_type }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        {% endfor %}
+        <hr>
+        <form action="{{url_for('main.check_link')}}" method="post" {% if confirm %}hidden{% endif %}>
+            <div class="form-group row">
+                <label class="col-md-3 col-lg-2" for="youtube_link">Youtube link</label>
+                <div class="col-md-9 col-lg-10">
+                <div class="input-group">
+                    <input class="form-control" type="text" name="youtube_link" id="youtube_link" required>
+                </div>
+                <small class="form-text text-muted">Catatan: Durasi maksimum video 15 menit</small>
+                </div>
+            </div>
+            <div class="form-group row justify-content-end">
+                <div class="col-auto">
+                    <input class="btn btn-primary" type="submit" value="Cek">
+                </div>
+            </div>
+        </form>
+        {% if confirm and subtitles %}
+        <form action="{{url_for('main.youtube')}}" method="post">
+            <div class="form-group row">
+                <label class="col-md-3 col-lg-2" for="youtube_link">Youtube link</label>
+                <div class="col-md-9 col-lg-10">
+                <div class="input-group">
+                    <input class="form-control" type="text" name="" id="" value="{{youtube_link}}" disabled>
+                    <input class="form-control" type="text" name="youtube_link" id="youtube_link" value="{{youtube_link}}"hidden>
+                </div>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-md-3 col-lg-2" for="subtitle">Pilih Subtitle</label>
+                <div class="col-md-9 col-lg-10">
+                    <select class="custom-select" name="subtitle" id="subtitle">
+                        {% for id, language in subtitles.items() %}
+                        <option value="{{ id }}" {% if "-orig" in id %}selected{% endif %}>{{ language }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-auto">
+                    <label for="model">Model Pendeteksian Objek:</label>
+                </div>
+                <div class="col-md-auto">
+                    <div class="custom-control custom-radio">
+                        <input class="custom-control-input" type="radio" name="model" value="yolov7" id="yolov7" required selected>
+                        <label class="custom-control-label" for="yolov7">YOLOv7 <sup class="rounded-circle border border-dark px-1" data-toggle="tooltip" data-html="true" title="Proses lebih lambat namun akurasi pendeteksian lebih akurat.">?</sup></label>
+                    </div>
+                    <div class="custom-control custom-radio">
+                        <input class="custom-control-input" type="radio" name="model" value="yolov7-tiny" id="yolov7-tiny" required>
+                        <label class="custom-control-label" for="yolov7-tiny" selected>YOLOv7-tiny <sup class="rounded-circle border border-dark px-1" data-toggle="tooltip" data-html="true" title="Proses lebih cepat namun akurasi pendeteksian kurang akurat.">?</sup></label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <p>
+                    <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" data-target="#advancedOption" aria-expanded="false" aria-controls="advancedOption">
+                        Buka Opsi Tambahan
+                    </button>
+                </p>
+            </div>
+            <div class="form-group">
+                <div class="collapse" id="advancedOption">
+                    <div class="card">
+                        <div class="card-header">Opsi Tambahan</div>
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="objectDetection">Object yang dihindari <sup class="rounded-circle border border-dark px-1" data-toggle="tooltip" data-html="true" title="Objek yang akan dihindari oleh subtitle.">?</sup></label>
+                                <div class="col-md-7 col-lg-9">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="objectFace" name="objectDetection" value="0" checked>
+                                        <label class="custom-control-label" for="objectFace">Wajah</label>
+                                    </div>
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" id="objectText" name="objectDetection" value="1" checked>
+                                        <label class="custom-control-label" for="objectText">Text</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="subtitlePosition">Posisi Subtitle <sup class="rounded-circle border border-dark px-1" data-toggle="tooltip" data-html="true" title="Posisi default dimana subtitle akan ditempatkan.">?</sup></label>
+                                <div class="col-md-7 col-lg-9">
+                                    <select class="custom-select" name="subtitlePosition" id="subtitlePosition">
+                                        <option value="0">Tengah Atas</option>
+                                        <option value="1" selected>Tengah Bawah</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="fontColor">Warna Font</label>
+                                <div class="col-md-7 col-lg-9">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">#</span>
+                                        </div>
+                                        <input class="form-control col-10 col-lg-11" type="text" name="fontColorText" id="fontColorText" value="ffffff">
+                                        <input class="form-control col-2 col-lg-1" type="color" name="fontColor" id="fontColor" value="#ffffff">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-5 col-lg-3" for="transparency">Transparansi Background <sup class="rounded-circle border border-dark px-1" data-toggle="tooltip" data-html="true" title="Warna background dari subtitle saat tidak ada posisi kosong dalam video untuk ditempati subtitle.">?</sup></label>
+                                <div class="col-md-7 col-lg-9 input-group">
+                                    <input class="form-control" type="number" name="transparency" id="transparency" min="0" max="100" value="100">
+                                    <div class="input-group-append">
+                                        <label class="input-group-text">%</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr> 
+            <div class="form-group row justify-content-end">
+                <div class="col-auto">
+                    <a type="button" class="btn btn-secondary" href="{{url_for('main.youtube')}}">Kembali</a>
+                </div>
+                <div class="col-auto">
+                    <input class="btn btn-primary" type="submit" value="Mulai Proses">
+                </div>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}
+
+{% block script %}
+<script>
+    function isHexColor(value) {
+        return /^#[0-9A-Fa-f]{6}$/i.test(value);
+    }
+    $(document).ready(function() {
+        $("#fontColor").change(function() {
+            var selectedColor = $("#fontColor").val();
+            $("#fontColorText").val(selectedColor.replace("#", ""));
+        });
+        $("#fontColorText").on("input", function() {
+            var hexValue = "#" +  $(this).val();
+            if (!isHexColor(hexValue)) {
+                hexValue = "#ffffff";
+            }
+            $("#fontColor").val(hexValue);
+        });
+    });
+
+</script>
+{% endblock script %}
