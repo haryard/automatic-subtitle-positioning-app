@@ -209,7 +209,7 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
             if average_iou > 0: break
             else: continue
           else: break
-        if len(order_pos) == 0 or len(list_iou) == 0: break
+        if len(order_pos) == 0 or len(list_iou) == 0 or average_iou > 0: break
     if len(order_pos) > 0:
         position = pos
     # check probability of each position if all area detected set set position to the lowest average iou position
