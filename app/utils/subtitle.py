@@ -19,21 +19,19 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
     subtitle_dir = os.path.dirname(subtitle_path)
     
     # convert subtitle
-    if os.path.splitext(os.path.basename(subtitle_path))[1] == "srv3":
-        path = current_app.root_path
-        command = ["mono", os.path.join(path, "\ext\YTSubConverter\YTSubConverter.exe"), subtitle_path, os.path.join(subtitle_dir, f"{subtitle_name}.ass")]
-        subprocess.run(command, check=True)
-        subtitle = pysubs2.load(os.path.join(subtitle_dir, f"{subtitle_name}.ass"))
-    else:
-        subtitle = pysubs2.load(os.path.join(subtitle_dir, f"{subtitle_name}.ass"))
+    path = current_app.root_path
+    command = [os.path.join(path, "ext\YTSubConverter\YTSubConverter.exe"), subtitle_path, os.path.join(subtitle_dir, f"{subtitle_name}.ass")]
+    subprocess.run(command, check=True)
     
+    subtitle = pysubs2.load(os.path.join(subtitle_dir, f"{subtitle_name}.ass"))
     new_subtitle = pysubs2.SSAFile()
     
     # process autogenerate sub from youtube
-    if(subtitle[0].end == subtitle[2].start):
+    regex_check = r'\\(an|pos|move)([1-9]|\((((\d+(\.\d+)?),*){2})(((\d+(\.\d+)?),*){2})?((\d+,*){2})?\))'
+    if(subtitle[0].end == subtitle[2].start) and (re.search(regex_check, subtitle[0].text) or re.search(regex_check, subtitle[2].text)) is None:
         sub_index = 0
         while sub_index <= len(subtitle):
-            if sub_index + 1 > len(subtitle) - 1:
+            if sub_index + 2 > len(subtitle) - 1:
                 start = subtitle[-1].start
                 end = subtitle[-1].end
                 text = subtitle[-1].text
@@ -46,20 +44,23 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
                 text = subtitle[sub_index].text + "\\N" + subtitle[sub_index + 1].text
                 new_line = SSAEvent(start=start, end=end, text=text)
                 new_subtitle.append(new_line)
-                sub_index += 2
+                sub_index = sub_index + 2
             elif (subtitle[sub_index].end == subtitle[sub_index + 1].end):
                 start = subtitle[sub_index].start
                 end = subtitle[sub_index].end
                 text = subtitle[sub_index].text + "\\N" + subtitle[sub_index + 1].text
                 new_line = SSAEvent(start=start, end=end, text=text)
                 new_subtitle.append(new_line)
-                sub_index += 2
+                sub_index = sub_index + 2
+            else:
+                sub_index = sub_index + 1
+                
+        new_subtitle.info['PlayResX'] = width 
+        new_subtitle.info['PlayResY'] = height
     else:
         new_subtitle = subtitle
         
     # add basic style
-    new_subtitle.info['PlayResX'] = width
-    new_subtitle.info['PlayResY'] = height
     fontSize = round(int(new_subtitle.info['PlayResX']) * 0.0296875, 2)
     marginH  = int(int(new_subtitle.info['PlayResX']) * 0.0234375)
     marginV  = int(int(new_subtitle.info['PlayResY']) * 0.034722)
@@ -72,7 +73,7 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
     
     # assign new style to subtitle
     for line in new_subtitle:
-        if re.search(r'\\(an|pos|move)([1-9]|\((((\d+(\.\d+)?),*){2})(((\d+(\.\d+)?),*){2})?((\d+,*){2})?\))', line.text) is None:
+        if re.search(regex_check, line.text) is None:
             line.text = re.sub(r'\{.*?\}', '', line.text)
             line.style = "base"
         else:
@@ -206,7 +207,7 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
                 bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
                 bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
                 iou = calculate_iou(bbox_pos, bbox_obj)
-                if iou > 0.001: list_iou.append(iou)
+                if iou > 0.01: list_iou.append(iou)
             if len(list_iou) == 0: break
             else: average_iou = sum(list_iou) / len(list_iou)
             if len(order_pos) == 0 or len(list_iou) == 0: break
@@ -215,21 +216,17 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
     # check probability of each position if all area detected set set position to the lowest average iou position
     elif len(order_pos) == 0:
         prob_pos = {}
-        average_iou = 1
-        for pos in list(sub_pos.keys()):
+        for pos in prev_order_pos:
             prob_frame = []
             for frame in list(frames_dict.keys()):
                 for obj in frames_dict[frame]:
                     bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
                     bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
                     iou = calculate_iou(bbox_pos, bbox_obj)
-                    if iou > 0.001: prob_frame.append(iou)
-            prob_pos[pos] = prob_frame
-        for pos in list(sub_pos.keys()):
-            new_average_iou = sum(prob_pos[pos]) / len(prob_pos[pos])
-            if new_average_iou < average_iou:
-                position = pos
-                average_iou = new_average_iou
+                    if iou > 0.01: prob_frame.append(iou)
+            average_iou = sum(prob_pos[pos]) / len(prob_pos[pos])
+            prob_pos[pos] = average_iou
+        position = min(prob_pos, key=prob_pos.get)
     return position
 
 def get_postioned_ass_tags(sub_pos: list, position: int, width:int, height: int, margin_x:int):

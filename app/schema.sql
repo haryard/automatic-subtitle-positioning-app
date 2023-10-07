@@ -45,5 +45,5 @@ CREATE TABLE Process (
 
 INSERT INTO ObjectDetectionModel (name, filepath)
 VALUES
-    ('yolov7', 'od_model/yolov7.pt'),
-    ('yolov7-tiny', 'od_model/yolov7-tiny.pt');
+    ('yolov7', 'static/model/yolov7.pt'),
+    ('yolov7-tiny', 'static/model/yolov7-tiny.pt');
