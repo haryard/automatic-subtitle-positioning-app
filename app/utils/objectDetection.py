@@ -13,7 +13,7 @@ def detect_object(model_path: str, source: str, project: str, name:str):
             '--exist-ok',
             '--img-size', '640',
             '--weights', model_path,
-            '--conf', '0.5',
+            '--conf', '0.6',
             '--source', source,
             '--project', project,
             '--name', name]

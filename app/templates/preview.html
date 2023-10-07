@@ -23,13 +23,13 @@
     <hr>
     <div class="alert {{ message_type }} alert-dismissible fade show">{{ message }}</div>
     {% endfor %}
-{% if exist != 0 and completed %}
-    <h1 class="row">
+{% if exist != 0 %}
+    <h3 class="row">
         {{ video_title }}
-    </h1>
+    </h3>
     <div class="row m-auto">
         <div class="embed-responsive embed-responsive-16by9 col-lg-10">
-            <video class="embed-responsive-item" style="width:100%;height:100%;" width="1920" height="1080" controls="controls" preload="none">
+            <video class="embed-responsive-item" style="width:100%;height:100%;" width="853" height="480" controls="controls" preload="none">
                 <source type"video/{{ extension }}" src="{{ url_for('static', filename=video_path) }}">
                 <track src="{{ url_for('static', filename=preprocessed_subtitle_path) }}" srclang="en" label="Default" kind="subtitles" id="default_sub" type="application/x-ass">
                 <track src="{{ url_for('static', filename=positioned_subtitle_path) }}" srclang="id" label="Positioned" kind="subtitles" id="positioned_sub" type="application/x-ass">

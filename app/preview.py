@@ -61,7 +61,7 @@ def delete_file(url_path):
         flash("File not found!")
         return render_template('upload.html')
     else:
-        process_path = os.path.join(current_app.root_path, 'static', url_path)
+        process_path = os.path.join(current_app.root_path, 'static','uploads', url_path)
         shutil.rmtree(process_path)
         db = get_db()
         db.execute('DELETE FROM Process WHERE url_path = ?', (url_path,))
@@ -116,21 +116,25 @@ def process_subtitle_edit(url_path):
         fontColor     = request.form['fontColor']
         bgTrans       = int(request.form['transparency'])
         
-        data_db = db.execute('SELECT v.fps, v.labels_path, s.preprocessed_subtitle_path '
+        data_db = db.execute('SELECT v.fps, v.labels_path, s.preprocessed_subtitle_path, s.positioned_subtitle_path '
         'FROM Process AS p '
         'JOIN Video AS v ON p.video_id = v.video_id '
         'JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id '
         'WHERE p.url_path = ?', (url_path,)).fetchone()
         
-        subtitle_path = os.path.join('app', data_db['preprocessed_subtitle_path'])
+        subtitle_path = os.path.join(current_app.root_path, data_db['preprocessed_subtitle_path'])
         fps           = data_db['fps']
-        labels_path   = os.path.join('app', data_db['labels_path'])
+        labels_path   = os.path.join(current_app.root_path, data_db['labels_path'])
         sub_pos_path  = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, subtitlePos, objectList)
-        sub_pos_path_db = os.path.normpath(sub_pos_path).split('/') if '/' in os.path.normpath(sub_pos_path) else os.path.normpath(sub_pos_path).split('\\')
-        sub_pos_path_db = ('/'.join(sub_pos_path_db[1:]))
+        sub_pos_path_db = data_db['positioned_subtitle_path']
         subtitle.set_style(sub_pos_path, fontColor, bgTrans)
         
-        db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE preprocessed_subtitle_path = ?", (sub_pos_path_db, data_db['preprocessed_subtitle_path']))
+        db.execute("UPDATE Process SET object_detect = ? WHERE url_path = ?", ((','.join(map(str, objectList))), url_path))
+        db.execute("UPDATE Subtitle SET font_color = ?, "
+        "default_position = ?, "
+        "bg_transparency =?, "
+        "positioned_subtitle_path = ? "
+        "WHERE preprocessed_subtitle_path = ?", (fontColor, subtitlePos, bgTrans, sub_pos_path_db, data_db['preprocessed_subtitle_path']))
         db.commit()
         
         positioned_sub_path    = sub_pos_path.split('static/')[1].replace("\\", "/")

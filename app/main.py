@@ -18,22 +18,27 @@ def generate_unique_random_url(db):
         if count == 0: return random_url
         
 def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_frames, default_pos, base_path, model_path, class_list):
-    frames_path_to = os.path.join(base_path, "frames")
+    frames_path_to = os.path.join('app', base_path, "frames")
     db = get_db()
     project,name = os.path.split(base_path)
     project      = os.path.join(current_app.root_path, project)
     frames_path  = video.extract_frames(video_path, subtitle_frames, frames_path_to)
+    frames_path  = frames_path.split("app/")[1]
     labels_path  = objectDetection.detect_object(os.path.normpath(model_path), os.path.join(current_app.root_path, os.path.normpath(frames_path)), project, name)
     sub_pos_path = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
-    frames_path_db = os.path.normpath(frames_path).split('/') if '/' in os.path.normpath(frames_path) else os.path.normpath(frames_path).split('\\')
-    frames_path_db = ('/'.join(frames_path_db[1:]))
-    labels_path_db = os.path.normpath(labels_path).split('/') if '/' in os.path.normpath(labels_path) else os.path.normpath(labels_path).split('\\')
+    frames_path_db = frames_path
+    labels_path_db = labels_path.split(current_app.root_path)[1]
+    labels_path_db = os.path.normpath(labels_path_db).split('/') if '/' in os.path.normpath(labels_path_db) else os.path.normpath(labels_path_db).split('\\')
     labels_path_db = ('/'.join(labels_path_db[1:]))
     sub_pos_path_db = os.path.normpath(sub_pos_path).split('/') if '/' in os.path.normpath(sub_pos_path) else os.path.normpath(sub_pos_path).split('\\')
     sub_pos_path_db = ('/'.join(sub_pos_path_db[1:]))
+    video_path      = video_path.split("app/")[1]
+    subtitle_path   = subtitle_path.split("app/")[1]
+    print(frames_path_db, labels_path_db, video_path)
+    print(sub_pos_path_db, subtitle_path)
     
     db.execute("UPDATE Video SET frames_path = ?, labels_path = ? WHERE filepath = ?", (frames_path_db, labels_path_db, video_path))
-    db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE filepath = ?", (sub_pos_path_db, subtitle_path))
+    db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE preprocessed_subtitle_path = ?", (sub_pos_path_db, subtitle_path))
     db.commit()
 
 def check_yt_subtitles(info_dict, type_subs):
@@ -232,7 +237,7 @@ def youtube():
             model_path = os.path.join(current_app.root_path, modeldb['filepath'])
             
             # run this in background
-            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
+            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
             db.commit()

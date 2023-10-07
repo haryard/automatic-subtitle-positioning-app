@@ -11,7 +11,7 @@ def hex_to_rgba(hex_color, alpha_percent):
     red = int(hex_color[0:2], 16)
     green = int(hex_color[2:4], 16)
     blue = int(hex_color[4:6], 16)
-    alpha = int(alpha_percent * 2.55)
+    alpha = int(255 - (alpha_percent * 255 / 100))
     return red, green, blue, alpha
 
 def process_convert_to_ass(subtitle_path: str, width: int, height: int):
@@ -20,7 +20,7 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
     
     # convert subtitle
     path = current_app.root_path
-    command = [os.path.join(path, "ext\YTSubConverter\YTSubConverter.exe"), subtitle_path, os.path.join(subtitle_dir, f"{subtitle_name}.ass")]
+    command = ['mono', os.path.join(path, "ext/YTSubConverter/YTSubConverter.exe"), subtitle_path, os.path.join(subtitle_dir, f"{subtitle_name}.ass")]
     subprocess.run(command, check=True)
     
     subtitle = pysubs2.load(os.path.join(subtitle_dir, f"{subtitle_name}.ass"))
@@ -85,9 +85,6 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
     return new_subtitle_path
 
 def process_frames_from_subtitle(subtitle_file: str, video_fps: float):
-    import pysubs2
-    from pysubs2 import time
-
     subtitle = pysubs2.load(subtitle_file)
     frames_subtitle = []
 
@@ -103,7 +100,6 @@ def process_frames_from_subtitle(subtitle_file: str, video_fps: float):
 def get_detected_object(label_path: str, frame_start: int, frame_end: int, width: int, height: int, class_list: list):
     data_dict = {}
     file_names = [file for file in os.listdir(label_path) if file.endswith('.txt')]
-
     for file_number in range(frame_start, frame_end + 1):
         file_name = f'{file_number}.txt'
         if file_name in file_names:
@@ -114,7 +110,7 @@ def get_detected_object(label_path: str, frame_start: int, frame_end: int, width
                 for line in lines:
                     parts = line.split()
                     class_number, x_mid, y_mid, width, height = map(float, parts)
-                    if class_number in class_list:
+                    if int(class_number) in class_list:
                         x1, y1 = x_mid - width/2, y_mid - height/2
                         x2, y2 = x_mid + width/2, y_mid + height/2
                         data_list.append({
@@ -193,24 +189,27 @@ def calculate_iou(box1, box2):
     area_intersection = x_intersection * y_intersection
     # Hitung IoU
     iou = area_intersection / (area_box1 + area_box2 - area_intersection)
-    return round(iou, 7)
+    return round(iou, 4)
 
 def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list):
     position = order_pos[0]
-    prev_order_pos = order_pos
+    prev_order_pos = [x for x in order_pos]
     # check if object in one of subtitle position set to that position if that position empty for all frame
     for frame in list(frames_dict.keys()):
         while order_pos:
-            pos = order_pos.pop(0)
-            list_iou = []
-            for obj in frames_dict[frame]:
-                bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
-                bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
-                iou = calculate_iou(bbox_pos, bbox_obj)
-                if iou > 0.01: list_iou.append(iou)
-            if len(list_iou) == 0: break
-            else: average_iou = sum(list_iou) / len(list_iou)
-            if len(order_pos) == 0 or len(list_iou) == 0: break
+          pos = order_pos.pop(0)
+          list_iou = []
+          for obj in frames_dict[frame]:
+              bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
+              bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
+              iou = calculate_iou(bbox_pos, bbox_obj)
+              if iou >= 0.01: list_iou.append(iou)
+          if len(list_iou) > 0: 
+            average_iou = sum(list_iou) / len(list_iou)
+            if average_iou > 0: break
+            else: continue
+          else: break
+        if len(order_pos) == 0 or len(list_iou) == 0: break
     if len(order_pos) > 0:
         position = pos
     # check probability of each position if all area detected set set position to the lowest average iou position
@@ -224,7 +223,8 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
                     bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
                     iou = calculate_iou(bbox_pos, bbox_obj)
                     if iou > 0.01: prob_frame.append(iou)
-            average_iou = sum(prob_pos[pos]) / len(prob_pos[pos])
+            if len(prob_frame) != 0: average_iou = sum(prob_frame) / len(prob_frame)
+            else: average_iou = 0
             prob_pos[pos] = average_iou
         position = min(prob_pos, key=prob_pos.get)
     return position
@@ -280,7 +280,7 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
         frame_end   = timeSub.ms_to_frames(line.end, fps)
         order_pos   = get_order_position(possible_position, default_pos)
         frames_dict = get_detected_object(label_path, frame_start, frame_end, sub_width, sub_height, class_selected)
-        position    = get_best_subtitle_position(possible_position, order_pos, frames_dict)
+        position    = get_best_subtitle_position(possible_position, order_pos, frames_dict) if len(frames_dict) != 0 else order_pos[0]
 
         # positioning subtitle
         ass_tag   = get_postioned_ass_tags(possible_position, position, sub_width, sub_height, margin_x)
