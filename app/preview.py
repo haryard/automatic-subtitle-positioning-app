@@ -150,9 +150,5 @@ def process_subtitle_edit(url_path):
         "WHERE preprocessed_subtitle_path = ?", (fontColor, subtitlePos, bgTrans, sub_pos_path_db, data_db['preprocessed_subtitle_path']))
         db.commit()
         
-        positioned_sub_path    = sub_pos_path.split('static/')[1].replace("\\", "/")
-        
-        return jsonify(url_for('static', filename=positioned_sub_path))
-        
-        
-        
+        flash("Subtitle berhasil disesuaikan!", category='success')
+        return redirect(url_for('preview.preview_video', url_path=url_path))

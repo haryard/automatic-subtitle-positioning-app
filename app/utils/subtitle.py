@@ -130,15 +130,15 @@ def get_detected_object(label_path: str, frame_start: int, frame_end: int, width
                 lines = file.readlines()
                 for line in lines:
                     parts = line.split()
-                    class_number, x_mid, y_mid, width, height = map(float, parts)
+                    class_number, x_mid, y_mid, w, h = map(float, parts)
                     if int(class_number) in class_list:
-                        x1, y1 = x_mid - width/2, y_mid - height/2
-                        x2, y2 = x_mid + width/2, y_mid + height/2
+                        x1, y1 = x_mid - w/2, y_mid - h/2
+                        x2, y2 = x_mid + w/2, y_mid + h/2
                         data_list.append({
                         'x_mid' : round(x_mid, 7),
                         'y_mid' : round(y_mid, 7),
-                        'width' : round(width, 7),
-                        'height': round(height, 7),
+                        'width' : round(w, 7),
+                        'height': round(h, 7),
                         'x1': round(x1, 7),
                         'x2': round(x2, 7),
                         'y1': round(y1, 7),
@@ -163,20 +163,20 @@ def get_possible_subtitle_position(width: int, height:int):
             box_count = row * 3 + col
             
             x_start = col * 0.2 * width
-            x_end = x_start + box_width
+            x_end   = x_start + box_width
             y_start = margin_top + row * box_height
-            y_end = y_start + box_height
-            x_mid = (x_start + x_end) / 2
-            y_mid = (y_start + y_end) / 2
+            y_end   = y_start + box_height
+            x_mid   = (x_start + x_end) / 2
+            y_mid   = (y_start + y_end) / 2
 
-            x_mid_percent = round(x_mid / width, 2)
-            y_mid_percent = round(y_mid / height, 2)
-            width_percent = round(box_width / width, 2)
-            height_percent = round(box_height / height, 2)
+            x_mid_percent   = round(x_mid / width, 2)
+            y_mid_percent   = round(y_mid / height, 2)
+            width_percent   = round(box_width / width, 2)
+            height_percent  = round(box_height / height, 2)
             x_start_percent = round(x_start / width, 2)
-            x_end_percent = round(x_end / width, 2)
+            x_end_percent   = round(x_end / width, 2)
             y_start_percent = round(y_start / height, 2)
-            y_end_percent = round(y_end / height, 2)
+            y_end_percent   = round(y_end / height, 2)
 
             box_info[box_count + 1] = ({
             'x_mid': x_mid_percent,
@@ -212,37 +212,38 @@ def calculate_iou(box1, box2):
         area_intersection = x_intersection * y_intersection
         # Hitung IoU
         iou = area_intersection / (area_box1 + area_box2 - area_intersection)
-        return round(iou, 4)
+        return round(iou, 7)
     else:
         return 0
 
-def divide_frames_dict(frames_dict, num_chunks):
-    chunk_size = len(frames_dict) // num_chunks
-    frames_chunks = [{} for _ in range(num_chunks)]
-    for idx, (frame, objects) in enumerate(frames_dict.items()):
-        chunk_idx = idx % num_chunks
-        frames_chunks[chunk_idx][frame] = objects
-    return frames_chunks
-
-def calculate_average_iou(sub_pos, order_pos, frames_chunk):
+def calculate_average_iou(sub_pos, order_pos, frames_dict_chunk):
     prob_pos = {}
     for pos in order_pos:
         prob_frame = []
-        print(frames_chunk)
-        for frame in frames_chunk:
-            print(frame)
-            for obj in frame:
+        for frame_num, frame_data in frames_dict_chunk.items():
+            for obj_data in frame_data:
                 bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
-                bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
+                bbox_obj = np.array([obj_data['x1'], obj_data['y1'], obj_data['x2'], obj_data['y2']])
                 iou = calculate_iou(bbox_pos, bbox_obj)
                 if iou > 0:
                     prob_frame.append(iou)
         if prob_frame:
-            average_iou = sum(prob_frame) / len(prob_frame)
+            average_iou   = sum(prob_frame) / len(prob_frame)
+            prob_pos[pos] = average_iou
         else:
-            average_iou = 0
-        prob_pos[pos] = average_iou
+            continue
+
     return prob_pos
+
+def divide_frames_dict(frames_dict, num_chunks):
+    chunk_size = len(frames_dict) // num_chunks
+    frames_chunks = [{} for _ in range(num_chunks)]
+    
+    for idx, (frame, objects) in enumerate(frames_dict.items()):
+        chunk_idx = idx % num_chunks
+        frames_chunks[chunk_idx][frame] = objects
+    
+    return frames_chunks
 
 def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list):
     position = order_pos[0]
@@ -265,13 +266,17 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
     # check probability of each position if all area detected set set position to the lowest average iou position
     if len(order_pos) == 0:
         frames_chunks = divide_frames_dict(frames_dict, 4)
+        
         pool = multiprocessing.Pool(processes=4)
         results = []
+        
         for chunk in frames_chunks:
             result = pool.apply_async(calculate_average_iou, (sub_pos, prev_order_pos, chunk))
             results.append(result)
+        
         pool.close()
         pool.join()
+        
         prob_pos = {}
         for result in results:
             prob_pos.update(result.get())

@@ -40,7 +40,7 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     db.execute("UPDATE Video SET labels_path = ? WHERE filepath = ?", (labels_path_db, video_path_db))
     db.commit()
     
-    sub_pos_path = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
+    sub_pos_path    = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
     sub_pos_path_db = os.path.normpath(sub_pos_path).split('/') if '/' in os.path.normpath(sub_pos_path) else os.path.normpath(sub_pos_path).split('\\')
     sub_pos_path_db = ('/'.join(sub_pos_path_db[1:]))
     db = get_db()

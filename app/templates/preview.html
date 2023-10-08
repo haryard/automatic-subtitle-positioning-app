@@ -50,7 +50,7 @@
             <div class="modal fade" id="editFormModal" data-backdrop="static" data-keyboard="true" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                     <div class="modal-content">
-                        <form id="editForm" method="post">
+                        <form id="editForm" method="post" action="{{ url_for('preview.process_subtitle_edit', url_path=url_path)}}">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="staticBackdropLabel">Edit Subtitle</h5>
                                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -192,19 +192,6 @@
                     $("#editFormModal").modal('show');
                 }
             })
-        });
-
-        $("#editForm").submit(function(event) {
-            event.preventDefault();
-            $.ajax({
-                type: "POST",
-                url: "{{ url_for('preview.process_subtitle_edit', url_path=url_path)}}",
-                data: $("#editForm").serialize(),
-                success: function(response) {
-                    $("#editFormModal").modal('hide');
-                    $("#positioned_sub").attr("src", response);
-                }
-            });
         });
 
         $("#fontColor").change(function() {
