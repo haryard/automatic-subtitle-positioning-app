@@ -55,11 +55,19 @@
                 <div class="col-md-auto">
                     <div class="custom-control custom-radio">
                         <input class="custom-control-input" type="radio" name="model" value="yolov7" id="yolov7" required>
-                        <label class="custom-control-label" for="yolov7">YOLOv7 <button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Proses lebih lambat namun akurasi pendeteksian lebih akurat.">?</button></label>
+                        <label class="custom-control-label" for="yolov7">YOLOv7 
+                          <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Proses lebih lambat namun akurasi pendeteksian lebih akurat">
+                            <button class="btn rounded-circle py-0 px-2" style="pointer-events: none;" type="button" disabled>?</button>
+                          </span>
+                        </label>
                     </div>
                     <div class="custom-control custom-radio">
                         <input class="custom-control-input" type="radio" name="model" value="yolov7-tiny" id="yolov7-tiny" required>
-                        <label class="custom-control-label" for="yolov7-tiny" selected>YOLOv7-tiny <button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Proses lebih cepat namun akurasi pendeteksian kurang akurat.">?</button></label>
+                        <label class="custom-control-label" for="yolov7-tiny" selected>YOLOv7-tiny 
+                          <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Proses lebih cepat namun akurasi pendeteksian kurang akurat">
+                            <button class="btn rounded-circle py-0 px-2" style="pointer-events: none;" type="button" disabled>?</button>
+                          </span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -77,7 +85,11 @@
                         <div class="card-header">Opsi Tambahan</div>
                         <div class="card-body">
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="objectDetection">Object yang dihindari:<button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Objek yang akan dihindari oleh subtitle.">?</button></label>
+                                <label class="col-md-5 col-lg-3" for="objectDetection">Object yang dihindari:
+                                  <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Objek yang akan dihindari oleh subtitle">
+                                    <button class="btn rounded-circle py-0 px-2" style="pointer-events: none;" type="button" disabled>?</button>
+                                  </span>
+                                </label>
                                 <div class="col-md-7 col-lg-9">
                                     <div class="custom-control custom-checkbox">
                                         <input type="checkbox" class="custom-control-input" id="objectFace" name="objectDetection" value="0" checked>
@@ -91,7 +103,11 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="subtitlePosition">Posisi Subtitle:<button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Posisi default dimana subtitle akan ditempatkan.">?</button></label>
+                                <label class="col-md-5 col-lg-3" for="subtitlePosition">Posisi Subtitle:
+                                  <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Posisi default dimana subtitle akan ditempatkan">
+                                    <button class="btn rounded-circle py-0 px-2" style="pointer-events: none;" type="button" disabled>?</button>
+                                  </span>
+                                </label>
                                 <div class="col-md-7 col-lg-9">
                                     <select class="custom-select" name="subtitlePosition" id="subtitlePosition">
                                         <option value="0">Tengah Atas</option>
@@ -114,7 +130,11 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="col-md-5 col-lg-3" for="transparency">Transparansi Background: <button type="button" class="btn rounded-circle py-0 px-2" data-toggle="tooltip" data-html="true" title="Warna background dari subtitle saat tidak ada posisi kosong dalam video untuk ditempati subtitle.">?</button></label>
+                                <label class="col-md-5 col-lg-3" for="transparency">Transparansi Background:
+                                  <span class="d-inline-block" tabindex="0" data-toggle="tooltip" title="Warna background dari subtitle saat tidak ada posisi kosong dalam video untuk ditempati subtitle">
+                                    <button class="btn rounded-circle py-0 px-2" style="pointer-events: none;" type="button" disabled>?</button>
+                                  </span>
+                                </label>
                                 <div class="col-md-7 col-lg-9 input-group">
                                     <input class="form-control" type="number" name="transparency" id="transparency" min="0" max="100" value="100">
                                     <div class="input-group-append">

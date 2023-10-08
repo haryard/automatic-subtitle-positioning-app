@@ -31,12 +31,12 @@
             {% endif %}
         {% endwith %}
 {% if exist != 0 %}
-    <h3 class="row">
+    <h3 class="row m-auto pb-3">
         {{ video_title }}
     </h3>
     <div class="row m-auto">
-        <div class="embed-responsive embed-responsive-16by9 col-lg-10">
-            <video class="embed-responsive-item" style="width:100%;height:100%;" width="853" height="480" controls="controls" preload="none">
+        <div class="embed-responsive embed-responsive-{{aspect_ratio[0]}}by{{aspect_ratio[1]}} col-lg-10">
+            <video class="embed-responsive-item" style="height:100%;width:100%;" width="{{ width }}" height="{{ height }}" controls="controls" preload="none">
                 <source type"video/{{ extension }}" src="{{ url_for('static', filename=video_path) }}">
                 <track src="{{ url_for('static', filename=preprocessed_subtitle_path) }}" srclang="en" label="Default" kind="subtitles" id="default_sub" type="application/x-ass">
                 <track src="{{ url_for('static', filename=positioned_subtitle_path) }}" srclang="id" label="Positioned" kind="subtitles" id="positioned_sub" type="application/x-ass">
@@ -157,6 +157,10 @@
         }
     });
 
+    function isHexColor(value) {
+        return /^#[0-9A-Fa-f]{6}$/i.test(value);
+    }
+
     $(document).ready(function() {
         $("#showEditFormBtn").click(function() {
             event.preventDefault();
@@ -183,7 +187,7 @@
                     });
                     $("#subtitlePosition").val(subtitlePosition);
                     $("#fontColor").val(fontColor);
-                    $("#fontColorText").val(fontColor);
+                    $("#fontColorText").val(fontColor.replace("#", ""));
                     $("#transparency").val(transparency);
                     $("#editFormModal").modal('show');
                 }
@@ -203,16 +207,13 @@
             });
         });
 
-        function isHexColor(value) {
-            return /^#[0-9A-Fa-f]{6}$/i.test(value);
-        }
         $("#fontColor").change(function() {
             var selectedColor = $("#fontColor").val();
             $("#fontColorText").val(selectedColor.replace("#", ""));
         });
 
         $("#fontColorText").on("input", function() {
-            var hexValue = "#" + $(this).val();
+            var hexValue = "#" +  $(this).val();
             if (!isHexColor(hexValue)) {
                 hexValue = "#ffffff";
             }

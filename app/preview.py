@@ -1,5 +1,6 @@
 import os
 import shutil
+import math
 
 from flask import Blueprint, flash, g, jsonify, redirect, render_template, current_app, request, url_for, send_file, abort
 from app import main
@@ -9,9 +10,14 @@ from app.extension import executor
 
 bp = Blueprint('preview', __name__, url_prefix="/preview")
 
+def calculate_aspect_ratio(width, height):
+    gcd = math.gcd(width, height)
+    aspect_ratio = (width // gcd, height // gcd)
+    return aspect_ratio
+
 @bp.route('/<url_path>')
 def preview_video(url_path):
-    db = get_db()
+    db        = get_db()
     check_url = db.execute("SELECT COUNT(*) FROM Process WHERE url_path = ?", (url_path,)).fetchone()[0]
     #print(executor.futures.done(url_path))
     if check_url == 0:
@@ -30,7 +36,7 @@ def preview_video(url_path):
     #    )
     else:
         data_db = db.execute(
-            'SELECT v.filename, v.filepath, s.preprocessed_subtitle_path, s.positioned_subtitle_path '
+            'SELECT v.filename, v.filepath, v.height, v.width, s.preprocessed_subtitle_path, s.positioned_subtitle_path '
             'FROM Process AS p '
             'JOIN Video AS v ON p.video_id = v.video_id '
             'JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id '
@@ -39,13 +45,19 @@ def preview_video(url_path):
         video_name = data_db['filename']
         video_ext  = os.path.splitext(data_db['filepath'])[-1].lstrip('.')
         video_path = data_db['filepath'].split("static/")[1]
+        video_height = data_db['height']
+        video_width  = data_db['width']
+        aspect_ratio = calculate_aspect_ratio(video_width, video_height)
         preprocessed_sub_path  = data_db['preprocessed_subtitle_path'].split("static/")[1].replace("\\", "/")
         positioned_sub_path    = data_db['positioned_subtitle_path'].split("static/")[1].replace("\\", "/")
         
         return render_template(
             'preview.html', 
             exist=check_url, 
-            video_title=video_name, 
+            video_title=video_name,
+            width=video_width,
+            height=video_height,
+            aspect_ratio=aspect_ratio,
             extension=video_ext, 
             video_path=video_path, 
             preprocessed_subtitle_path=preprocessed_sub_path, 
@@ -66,6 +78,7 @@ def delete_file(url_path):
         db = get_db()
         db.execute('DELETE FROM Process WHERE url_path = ?', (url_path,))
         db.commit()
+        flash("Video berhasil dihapus!", category='success')
         return redirect(url_for('main.upload'))
 
 @bp.route('/download_sub/<url_path>')

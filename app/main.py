@@ -3,8 +3,9 @@ import re
 import secrets
 import yt_dlp
 
-from flask import Blueprint, flash, redirect, render_template, request, current_app, url_for, Markup
+from flask import Blueprint, flash, redirect, render_template, request, current_app, url_for, Markup, jsonify
 from werkzeug.utils import secure_filename
+from flask_executor import Executor
 from app.db import get_db
 from app.utils import subtitle, video, objectDetection
 from app.extension import executor
@@ -109,22 +110,24 @@ def upload():
             
             # set subtitle style
             subtitle.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
+            
             db = get_db()
             db.execute("INSERT INTO Video (filename, filepath, fps, width, height) VALUES (?, ?, ?, ?, ?)", (video_name, video_path, fps, width, height))
             db.execute("INSERT INTO Subtitle (filename, filepath, preprocessed_subtitle_path, font_color, default_position, bg_transparency) VALUES (?, ?, ?, ?, ?, ?)", (subtitle_name, subtitle_path, preprocessed_subtitle_path_db, fontColor, subtitlePos, bgTrans))
             db.commit()
             
+            db = get_db()
             modeldb    = db.execute('SELECT * FROM ObjectDetectionModel WHERE name = ?', (odmodel,)).fetchone()
             videodb    = db.execute('SELECT video_id FROM Video WHERE filepath = ?', (video_path,)).fetchone()
             subtitledb = db.execute('SELECT subtitle_id FROM Subtitle WHERE filepath = ?', (subtitle_path,)).fetchone()
             model_path = os.path.join(current_app.root_path, modeldb['filepath'])
             
-            # run this in background
-            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-            #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             db = get_db()
             db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
             db.commit()
+            # run this in background
+            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+            #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
     return render_template("upload.html")
@@ -159,7 +162,7 @@ def check_link():
         else:
             subtitles     = check_yt_subtitles(info_dict, 'subtitles') if check_yt_subtitles(info_dict, 'subtitles') else check_yt_subtitles(info_dict, 'automatic_captions')
             subtitle_type = "Subtitle" if check_yt_subtitles(info_dict, 'subtitles') else "Subtitle otomatis"
-            flash((subtitle_type + " ditemukan"), category='info')
+            flash((subtitle_type + " ditemukan untuk video " + info_dict.get('title')), category='info')
             youtube_confirm = True
             return render_template("youtube.html", confirm=youtube_confirm, youtube_link=link, subtitles=subtitles)       
 
@@ -223,22 +226,31 @@ def youtube():
             # set subtitle style
             subtitle.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
             
+            db = get_db()
             db.execute("INSERT INTO Video (filename, filepath, fps, width, height) VALUES (?, ?, ?, ?, ?)", (video_name, video_path, fps, width, height))
             db.execute("INSERT INTO Subtitle (filename, filepath, preprocessed_subtitle_path, font_color, default_position, bg_transparency) VALUES (?, ?, ?, ?, ?, ?)", (subtitle_name, subtitle_path, preprocessed_subtitle_path_db, fontColor, subtitlePos, bgTrans))
             db.commit()
         
+            db = get_db()
             modeldb    = db.execute('SELECT * FROM ObjectDetectionModel WHERE name = ?', (odmodel,)).fetchone()
             videodb    = db.execute('SELECT video_id FROM Video WHERE filepath = ?', (video_path,)).fetchone()
             subtitledb = db.execute('SELECT subtitle_id FROM Subtitle WHERE filepath = ?', (subtitle_path,)).fetchone()
             model_path = os.path.join(current_app.root_path, modeldb['filepath'])
             
+            db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
+            db.commit()
             # run this in background
             extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
-            db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
-            db.commit()
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
             return render_template("youtube.html")
                 
     return render_template("youtube.html")
+
+@bp.route('/get-result/<url_id>')
+def get_result(url_id):
+    if not executor.futures.done(url_id):
+        return jsonify({'status': executor.futures._state(url_id)})
+    future = executor.futures.pop(url_id)
+    return jsonify({'status': "done", 'result': future.result()})

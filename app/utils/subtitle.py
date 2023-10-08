@@ -144,7 +144,8 @@ def get_detected_object(label_path: str, frame_start: int, frame_end: int, width
                         'y1': round(y1, 7),
                         'y2': round(y2, 7)})
                     else: continue
-            data_dict[file_number] = data_list
+            if len(data_list) > 0: data_dict[file_number] = data_list
+            else: continue
 
     return data_dict
 
@@ -200,14 +201,6 @@ def get_order_position(sub_pos:list, default_pos:int):
         order_pos.append(row[0])
     return order_pos
 
-def divide_frames_dict(frames_dict, num_chunks):
-    chunk_size = len(frames_dict) // num_chunks
-    frames_chunks = [{} for _ in range(num_chunks)]
-    for idx, (frame, objects) in enumerate(frames_dict.items()):
-        chunk_idx = idx % num_chunks
-        frames_chunks[chunk_idx][frame] = objects
-    return frames_chunks
-
 def calculate_iou(box1, box2):
     # Hitung luas area masing-masing bounding box
     # Hitung luas area interseksi
@@ -223,18 +216,28 @@ def calculate_iou(box1, box2):
     else:
         return 0
 
+def divide_frames_dict(frames_dict, num_chunks):
+    chunk_size = len(frames_dict) // num_chunks
+    frames_chunks = [{} for _ in range(num_chunks)]
+    for idx, (frame, objects) in enumerate(frames_dict.items()):
+        chunk_idx = idx % num_chunks
+        frames_chunks[chunk_idx][frame] = objects
+    return frames_chunks
+
 def calculate_average_iou(sub_pos, order_pos, frames_chunk):
     prob_pos = {}
     for pos in order_pos:
         prob_frame = []
+        print(frames_chunk)
         for frame in frames_chunk:
+            print(frame)
             for obj in frame:
                 bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                 bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
                 iou = calculate_iou(bbox_pos, bbox_obj)
                 if iou > 0:
                     prob_frame.append(iou)
-        if len(prob_frame) > 0:
+        if prob_frame:
             average_iou = sum(prob_frame) / len(prob_frame)
         else:
             average_iou = 0
@@ -332,10 +335,10 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
 
         # positioning subtitle
         ass_tag   = get_postioned_ass_tags(possible_position, position, sub_width, sub_height, margin_x)
-        line.text = f"{{ {ass_tag} }}{line.text}"
-        if len(order_pos) == 0: line.style = "base-bg"
+        positioned_subtitle[line].text = f"{{ {ass_tag} }}{positioned_subtitle[line].text}"
+        if len(order_pos) == 0: positioned_subtitle[line].style = "base-bg"
         else: 
-            line.style    = "base"
+            positioned_subtitle[line].style    = "base"
             prev_position = position
 
     positioned_subtitle.save(f'{sub_dir}/{sub_name}_positioned.ass')
