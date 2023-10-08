@@ -19,7 +19,6 @@ def generate_unique_random_url(db):
         
 def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_frames, default_pos, base_path, model_path, class_list):
     frames_path_to = os.path.join('app', base_path, "frames")
-    db = get_db()
     project,name = os.path.split(base_path)
     project      = os.path.join(current_app.root_path, project)
     frames_path  = video.extract_frames(video_path, subtitle_frames, frames_path_to)
@@ -34,9 +33,8 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     sub_pos_path_db = ('/'.join(sub_pos_path_db[1:]))
     video_path      = video_path.split("app/")[1]
     subtitle_path   = subtitle_path.split("app/")[1]
-    print(frames_path_db, labels_path_db, video_path)
-    print(sub_pos_path_db, subtitle_path)
     
+    db = get_db()
     db.execute("UPDATE Video SET frames_path = ?, labels_path = ? WHERE filepath = ?", (frames_path_db, labels_path_db, video_path))
     db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE preprocessed_subtitle_path = ?", (sub_pos_path_db, subtitle_path))
     db.commit()
@@ -57,25 +55,21 @@ def check_yt_subtitles(info_dict, type_subs):
 
 @bp.route("/", methods=['GET', 'POST'])
 def upload():
-    db = get_db()
-    message_type = ""
     if request.method == 'POST':
+        db = get_db()
         if ('video' or 'subtitle') not in request.files:
-            if 'video' not in request.files: flash('Video belum dimasukkan')
-            elif 'subtitle' not in request.files: flash('Subtitle belum dimasukkan')
-            else: flash('No video and subtitle part')
-            message_type = "alert-danger"
+            if 'video' not in request.files: flash(u'Video belum dimasukkan', 'danger')
+            elif 'subtitle' not in request.files: flash(u'Subtitle belum dimasukkan', 'danger')
+            else: flash(u'Video dan subtitle belum dimasukkan', 'danger')
         video    = request.files['video']
         subtitle = request.files['subtitle']
         if (video.filename or subtitle.filename) == '':
-            if video.filename == "": flash('Pilih video!')
-            elif subtitle.filename == "": flash('Pilih Subtitle!')
-            else: flash('Pilih video dan subtitle!')
-            message_type = "alert-danger"
+            if video.filename == "": flash(u'Pilih video!', 'danger')
+            elif subtitle.filename == "": flash(u'Pilih Subtitle!', 'danger')
+            else: flash(u'Pilih video dan subtitle!', 'danger')
             
         if not (request.form['model'] and request.form.getlist('objectDetection') and request.form['fontColor'] and request.form['transparency']):
-            flash('Semua form harus diisi!')
-            message_type = "alert-danger"
+            flash(u'Semua form harus diisi!', 'danger')
         else:
             video_name    = secure_filename(video.filename)
             subtitle_name = secure_filename(subtitle.filename)
@@ -119,14 +113,14 @@ def upload():
             model_path = os.path.join(current_app.root_path, modeldb['filepath'])
             
             # run this in background
-            executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
+            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+            #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             db = get_db()
             db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
             db.commit()
             url_preview = url_for('preview.preview_video', url_path=url_path)
-            flash(Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>'))
-            message_type = "alert-success"
-    return render_template("upload.html", message_type=message_type)
+            flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
+    return render_template("upload.html")
 
 @bp.route('/upload-youtube/check', methods=["POST"])
 def check_link():
@@ -134,9 +128,8 @@ def check_link():
     regex_youtube = r"^(?:https?:\/\/)?(?:(?:www|m)\.)?(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})(?:\S+)?$"
     youtube_confirm = False
     if not re.match(regex_youtube, link):
-        flash("Bukan link video Youtube!")
-        message_type = 'alert-warning'
-        return render_template("youtube.html", confirm=youtube_confirm, message_type=message_type)
+        flash(u"Bukan link video Youtube!", 'warning')
+        return render_template("youtube.html", confirm=youtube_confirm)
     else:
         check_opts = {
             'quiet': True,
@@ -146,26 +139,22 @@ def check_link():
         try:
             info_dict = ydl.extract_info(link, download=False)
         except Exception as e:
-            flash("Video tidak memiliki subtitile")
-            message_type = 'alert-warning'
-            return render_template("youtube.html", confirm=youtube_confirm, message_type=message_type)
+            flash(u"Video tidak memiliki subtitile", 'warning')
+            return render_template("youtube.html", confirm=youtube_confirm)
         duration = info_dict.get('duration') if info_dict.get('duration') else 1000
         if duration > 900 or info_dict.get('is_live'):
-            if info_dict.get('is_live'): flash("Video sedang live, tidak dapat diproses")
-            else: flash("Durasi video lebih dari 15 menit")
-            message_type = 'alert-warning'
-            return render_template("youtube.html", confirm=youtube_confirm, message_type=message_type)
+            if info_dict.get('is_live'): flash(u"Video sedang live, tidak dapat diproses" , 'warning')
+            else: flash(u"Durasi video lebih dari 15 menit", 'warning')
+            return render_template("youtube.html", confirm=youtube_confirm)
         if not (check_yt_subtitles(info_dict, 'subtitles') or check_yt_subtitles(info_dict, 'automatic_captions')):
-            flash("Video tidak memiliki subtitile")
-            message_type = 'alert-warning'
-            return render_template("youtube.html", confirm=youtube_confirm, message_type=message_type)
+            flash(u"Video tidak memiliki subtitile", 'warning')
+            return render_template("youtube.html", confirm=youtube_confirm)
         else:
             subtitles     = check_yt_subtitles(info_dict, 'subtitles') if check_yt_subtitles(info_dict, 'subtitles') else check_yt_subtitles(info_dict, 'automatic_captions')
             subtitle_type = "Subtitle" if check_yt_subtitles(info_dict, 'subtitles') else "Subtitle otomatis"
-            flash(subtitle_type + " ditemukan")
-            message_type = 'alert-info'
+            flash((subtitle_type + " ditemukan"), category='info')
             youtube_confirm = True
-            return render_template("youtube.html", confirm=youtube_confirm, message_type=message_type, youtube_link=link, subtitles=subtitles)       
+            return render_template("youtube.html", confirm=youtube_confirm, youtube_link=link, subtitles=subtitles)       
 
 @bp.route('/upload-youtube', methods=['GET', 'POST'])
 def youtube():
@@ -242,8 +231,7 @@ def youtube():
             db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
             db.commit()
             url_preview = url_for('preview.preview_video', url_path=url_path)
-            flash(Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>'))
-            message_type = "alert-success"
-            return render_template("youtube.html", message_type=message_type)
+            flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
+            return render_template("youtube.html")
                 
     return render_template("youtube.html")

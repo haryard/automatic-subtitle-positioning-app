@@ -2,17 +2,27 @@
 {% block title %}Upload File{% endblock title %}
 
 {% block header %}
+{% set active_item = active_item|default('upload') %}
 {% include "navbar.html" %}
 {% endblock header %}
+
 
 {% block content %}
 <div class="container">
     <div class="border p-4 mx-auto mt-3">
         <h3>Unggah Berkas</h3>
-        {% for message in get_flashed_messages() %}
-        <hr>
-        <div class="alert {{ message_type }} alert-dismissible fade show">{{ message }}</div>
-        {% endfor %}
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+            {% if messages %} 
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         <hr>
         <form action="/upload" method="post" enctype="multipart/form-data">
             <div class="form-group row">
@@ -24,6 +34,7 @@
                         <label class="custom-file-label" for="video">Pilih berkas video</label>
                     </div>
                     <small class="form-text text-muted">Format file yang dapat diproses MP4, MKV, dan WEBM</small>
+                    <small class="form-text text-muted">Catatan: maksimum ukuran file 100MB</small>
                 </div>
                 <div class="col-md mt-2">
                     <label for="subtitle">Subtitle</label>
@@ -32,7 +43,8 @@
                         <input class="custom-file-input" type="file" name="subtitle" accept=".srt, .ass, .srv3, .vtt" required>
                         <label class="custom-file-label" for="video">Pilih berkas subtitle</label>
                     </div>
-                    <small class="form-text text-muted">Format file yang dapat diproses SRT, ASS, SRV3, dan VTT<br>Catatan: Jika subtitle berasal dari subtitle otomatis di Youtube, maka gunakan format SRV3</small>
+                    <small class="form-text text-muted">Format file yang dapat diproses SRT, ASS, SRV3, dan VTT</small>
+                    <small class="form-text text-muted">Catatan: Gunakan format subtitle SRV3 jikaa subtitle diambil dari Youtube</small>
                 </div>
             </div>
 

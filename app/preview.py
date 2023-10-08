@@ -15,7 +15,7 @@ def preview_video(url_path):
     check_url = db.execute("SELECT COUNT(*) FROM Process WHERE url_path = ?", (url_path,)).fetchone()[0]
     #print(executor.futures.done(url_path))
     if check_url == 0:
-        flash("File not found!")
+        flash("Video tidak ditemukan!", category='danger')
         return redirect(url_for('main.upload'))
     #if not executor.futures.done(url_path):
     #    data_db = db.execute('SELECT v.filename FROM Process AS p JOIN Video AS v ON p.video_id = v.video_id WHERE p.url_path = ?', (url_path,)).fetchone()
@@ -58,7 +58,7 @@ def delete_file(url_path):
     db = get_db()
     check_url = db.execute("SELECT COUNT(*) FROM Process WHERE url_path = ?", (url_path,)).fetchone()[0]
     if check_url == 0:
-        flash("File not found!")
+        flash("Video tidak ditemukan!", category='danger')
         return render_template('upload.html')
     else:
         process_path = os.path.join(current_app.root_path, 'static','uploads', url_path)

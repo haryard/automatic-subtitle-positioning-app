@@ -2,6 +2,8 @@ import os
 import re
 import subprocess
 import pysubs2
+import numpy as np
+import multiprocessing
 from pysubs2 import SSAEvent
 from pysubs2 import time as timeSub
 from flask import current_app
@@ -54,7 +56,26 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
                 sub_index = sub_index + 2
             else:
                 sub_index = sub_index + 1
-                
+        new_subtitle.info['PlayResX'] = width 
+        new_subtitle.info['PlayResY'] = height
+    elif("\\N" not in subtitle[0].text):
+        sub_index = 0
+        while sub_index <= len(subtitle):
+            if sub_index + 2 > len(subtitle) - 1:
+                start = subtitle[-1].start
+                end = subtitle[-1].end
+                text = subtitle[-1].text
+                new_line = SSAEvent(start=start, end=end, text=text)
+                new_subtitle.append(new_line)
+                break
+            if "\\N" not in (subtitle[sub_index].text and subtitle[sub_index].text):
+                start = subtitle[sub_index].start
+                end = subtitle[sub_index+1].end
+                text = subtitle[sub_index].text + "\\N" + subtitle[sub_index + 1].text
+                new_line = SSAEvent(start=start, end=end, text=text)
+                new_subtitle.append(new_line)
+                sub_index = sub_index + 2
+            else: sub_index = sub_index + 1
         new_subtitle.info['PlayResX'] = width 
         new_subtitle.info['PlayResY'] = height
     else:
@@ -179,17 +200,46 @@ def get_order_position(sub_pos:list, default_pos:int):
         order_pos.append(row[0])
     return order_pos
 
+def divide_frames_dict(frames_dict, num_chunks):
+    chunk_size = len(frames_dict) // num_chunks
+    frames_chunks = [{} for _ in range(num_chunks)]
+    for idx, (frame, objects) in enumerate(frames_dict.items()):
+        chunk_idx = idx % num_chunks
+        frames_chunks[chunk_idx][frame] = objects
+    return frames_chunks
+
 def calculate_iou(box1, box2):
     # Hitung luas area masing-masing bounding box
-    area_box1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
-    area_box2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
     # Hitung luas area interseksi
     x_intersection = max(0, min(box1[2], box2[2]) - max(box1[0], box2[0]))
     y_intersection = max(0, min(box1[3], box2[3]) - max(box1[1], box2[1]))
-    area_intersection = x_intersection * y_intersection
-    # Hitung IoU
-    iou = area_intersection / (area_box1 + area_box2 - area_intersection)
-    return round(iou, 4)
+    if x_intersection > 0 and y_intersection > 0:
+        area_box1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+        area_box2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+        area_intersection = x_intersection * y_intersection
+        # Hitung IoU
+        iou = area_intersection / (area_box1 + area_box2 - area_intersection)
+        return round(iou, 4)
+    else:
+        return 0
+
+def calculate_average_iou(sub_pos, order_pos, frames_chunk):
+    prob_pos = {}
+    for pos in order_pos:
+        prob_frame = []
+        for frame in frames_chunk:
+            for obj in frame:
+                bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
+                bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
+                iou = calculate_iou(bbox_pos, bbox_obj)
+                if iou > 0:
+                    prob_frame.append(iou)
+        if len(prob_frame) > 0:
+            average_iou = sum(prob_frame) / len(prob_frame)
+        else:
+            average_iou = 0
+        prob_pos[pos] = average_iou
+    return prob_pos
 
 def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list):
     position = order_pos[0]
@@ -203,26 +253,25 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
               bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
               bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
               iou = calculate_iou(bbox_pos, bbox_obj)
-              if iou >= 0.01: list_iou.append(iou)
+              if iou > 0: list_iou.append(iou)
           if len(list_iou) > 0: continue
           else: break
-        if len(order_pos) == 0 or len(list_iou) == 0: break
-    if len(order_pos) > 0:
-        position = pos
+        if len(order_pos) == 0 or len(list_iou) == 0: 
+            position = pos
+            break
     # check probability of each position if all area detected set set position to the lowest average iou position
-    elif len(order_pos) == 0:
+    if len(order_pos) == 0:
+        frames_chunks = divide_frames_dict(frames_dict, 4)
+        pool = multiprocessing.Pool(processes=4)
+        results = []
+        for chunk in frames_chunks:
+            result = pool.apply_async(calculate_average_iou, (sub_pos, prev_order_pos, chunk))
+            results.append(result)
+        pool.close()
+        pool.join()
         prob_pos = {}
-        for pos in prev_order_pos:
-            prob_frame = []
-            for frame in list(frames_dict.keys()):
-                for obj in frames_dict[frame]:
-                    bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
-                    bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
-                    iou = calculate_iou(bbox_pos, bbox_obj)
-                    if iou >= 0.01: prob_frame.append(iou)
-            if len(prob_frame) > 0: average_iou = sum(prob_frame) / len(prob_frame)
-            else: average_iou = 0
-            prob_pos[pos] = average_iou
+        for result in results:
+            prob_pos.update(result.get())
         position = min(prob_pos, key=prob_pos.get)
     return position
 
@@ -265,17 +314,19 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
 
     # set subtitle position
     possible_position = get_possible_subtitle_position(sub_width, sub_height)
+    prev_position     = None
 
     # process subtitle
-    for line in positioned_subtitle:
+    for line in range(len(positioned_subtitle)):
         # if pattern found in that line continue to next line
         pattern_positioning_tag = r'\\(an|pos|move)([1-9]|\((((\d+(\.\d+)?),*){2})(((\d+(\.\d+)?),*){2})?((\d+,*){2})?\))'
-        if re.search(pattern_positioning_tag, line.text) is not None: continue
+        if re.search(pattern_positioning_tag, positioned_subtitle[line].text) is not None: continue
 
         # set initial value
-        frame_start = timeSub.ms_to_frames(line.start, fps)
-        frame_end   = timeSub.ms_to_frames(line.end, fps)
+        frame_start = timeSub.ms_to_frames(positioned_subtitle[line].start, fps)
+        frame_end   = timeSub.ms_to_frames(positioned_subtitle[line].end, fps)    
         order_pos   = get_order_position(possible_position, default_pos)
+        if prev_position is not None and positioned_subtitle[line-1].style == 'base-bg': order_pos.insert(1, prev_position)
         frames_dict = get_detected_object(label_path, frame_start, frame_end, sub_width, sub_height, class_selected)
         position    = get_best_subtitle_position(possible_position, order_pos, frames_dict) if len(frames_dict) != 0 else order_pos[0]
 
@@ -283,7 +334,9 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
         ass_tag   = get_postioned_ass_tags(possible_position, position, sub_width, sub_height, margin_x)
         line.text = f"{{ {ass_tag} }}{line.text}"
         if len(order_pos) == 0: line.style = "base-bg"
-        else: line.style = "base"
+        else: 
+            line.style    = "base"
+            prev_position = position
 
     positioned_subtitle.save(f'{sub_dir}/{sub_name}_positioned.ass')
     return f'{sub_dir}/{sub_name}_positioned.ass'

@@ -1,3 +1,11 @@
-<nav class="navbar sticky-top navbar-light bg-light">
-    <a class="navbar-brand" href="{{url_for('main.upload')}}">Penempatan Subtitle Otomatis</a>
+<nav class="navbar sticky-top navbar-light bg-light row">
+    <a class="navbar-brand row col-md mx-3 mx-md-auto" href="{{url_for('main.upload')}}">Penempatan Subtitle Otomatis</a>
+    <ul class="nav justify-content-md-end d-flex flex-md-row flex-column nav-pills justify-content-center col-md row mx-3 mx-md-auto">
+        <li class="nav-item">
+            <a class="nav-link {% if active_item == 'upload' %}active{% endif %}" href="{{url_for('main.upload')}}">Upload File</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_item == 'youtube' %}active{% endif %}" href="{{url_for('main.youtube')}}">Upload dari Youtube</a>
+        </li>
+    </li>
 </nav>

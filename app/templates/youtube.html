@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block header %}
+{% set active_item = active_item|default('youtube') %}
 {% include "navbar.html" %}
 {% endblock header %}
 
@@ -8,14 +9,19 @@
 <div class="container">
     <div class="border p-4 mx-auto mt-3">
         <h3>Unggah dari Youtube</h3>
-        {% for message in get_flashed_messages() %}
-        <div class="alert {{ message_type }} alert-dismissible fade show">
-            {{ message }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-        {% endfor %}
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+            {% if messages %} 
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
         <hr>
         <form action="{{url_for('main.check_link')}}" method="post" {% if confirm %}hidden{% endif %}>
             <div class="form-group row">

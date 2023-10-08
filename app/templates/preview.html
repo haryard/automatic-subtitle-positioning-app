@@ -19,10 +19,17 @@
 
 {% block content %}
 <div class="container border p-4 mx-auto mt-3">
-    {% for message in get_flashed_messages() %}
-    <hr>
-    <div class="alert {{ message_type }} alert-dismissible fade show">{{ message }}</div>
-    {% endfor %}
+    {% with messages = get_flashed_messages(with_categories=true) %} 
+            {% if messages %} 
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 {% if exist != 0 %}
     <h3 class="row">
         {{ video_title }}
