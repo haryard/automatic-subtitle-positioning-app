@@ -30,7 +30,7 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-{% if exist != 0 %}
+{% if exist and completed %}
     <h3 class="row m-auto pb-3">
         {{ video_title }}
     </h3>

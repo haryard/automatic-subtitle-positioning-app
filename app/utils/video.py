@@ -21,22 +21,21 @@ def get_height(video_path: str):
 
 def extract_frames(video_path: str, frames_list: list, frame_out_path: str):
     cap = cv2.VideoCapture(video_path)
-    frame_count = 0
+    frame_count = 1
 
     if not os.path.exists(frame_out_path): 
         os.makedirs(frame_out_path)
 
     while True:
-        cap.read()
         ret, frame = cap.read()
         if not ret: break
-        frame_count += 1
 
         if frame_count in frames_list:
             frame_filename = os.path.join(frame_out_path, f"{frame_count}.jpg")
             cv2.imwrite(frame_filename, frame)
 
         if frame_count > frames_list[-1]: break
+        frame_count += 1
 
     cap.release()
     return frame_out_path

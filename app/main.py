@@ -3,9 +3,10 @@ import re
 import secrets
 import yt_dlp
 
-from flask import Blueprint, flash, redirect, render_template, request, current_app, url_for, Markup, jsonify
+from flask import Blueprint, flash, redirect, render_template, request, current_app, url_for, Markup, jsonify, copy_current_request_context
 from werkzeug.utils import secure_filename
 from flask_executor import Executor
+from threading import Thread
 from app.db import get_db
 from app.utils import subtitle, video, objectDetection
 from app.extension import executor
@@ -21,12 +22,12 @@ def generate_unique_random_url(db):
 def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_frames, default_pos, base_path, model_path, class_list):
     video_path_db      = video_path.split("app/")[1]
     subtitle_path_db   = subtitle_path.split("app/")[1]
+    db = get_db()
     
     frames_path_to = os.path.join('app', base_path, "frames")
     frames_path    = video.extract_frames(video_path, subtitle_frames, frames_path_to)
     frames_path    = frames_path.split("app/")[1]
     frames_path_db = frames_path
-    db = get_db()
     db.execute("UPDATE Video SET frames_path = ? WHERE filepath = ?", (frames_path_db, video_path_db))
     db.commit()
     
@@ -36,14 +37,12 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     labels_path_db = labels_path.split(current_app.root_path)[1]
     labels_path_db = os.path.normpath(labels_path_db).split('/') if '/' in os.path.normpath(labels_path_db) else os.path.normpath(labels_path_db).split('\\')
     labels_path_db = ('/'.join(labels_path_db[1:]))
-    db = get_db()
     db.execute("UPDATE Video SET labels_path = ? WHERE filepath = ?", (labels_path_db, video_path_db))
     db.commit()
     
     sub_pos_path    = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
     sub_pos_path_db = os.path.normpath(sub_pos_path).split('/') if '/' in os.path.normpath(sub_pos_path) else os.path.normpath(sub_pos_path).split('\\')
     sub_pos_path_db = ('/'.join(sub_pos_path_db[1:]))
-    db = get_db()
     db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE preprocessed_subtitle_path = ?", (sub_pos_path_db, subtitle_path_db))
     db.commit()
 
@@ -59,7 +58,6 @@ def check_yt_subtitles(info_dict, type_subs):
         return subtitle_dict
     else:
         return False
- 
 
 @bp.route("/", methods=['GET', 'POST'])
 def upload():
@@ -126,7 +124,11 @@ def upload():
             db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
             db.commit()
             # run this in background
-            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+            @copy_current_request_context
+            def background_task():
+              extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+            Thread(target=background_task, name=url_path).start()
+            #extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
@@ -240,8 +242,11 @@ def youtube():
             db.execute("INSERT INTO Process (url_path, video_id, subtitle_id, model_id, object_detect) VALUES (?, ?, ?, ?, ?)", (url_path, videodb['video_id'], subtitledb['subtitle_id'], modeldb['model_id'], (','.join(map(str, objectList)))))
             db.commit()
             # run this in background
-            extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-            #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
+            @copy_current_request_context
+            def background_task():
+              extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+            Thread(target=background_task, name=url_path).start()
+            #executor.submit(extract_detect_all_subtitle_frame, db, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
             return render_template("youtube.html")
@@ -250,7 +255,4 @@ def youtube():
 
 @bp.route('/get-result/<url_id>')
 def get_result(url_id):
-    if not executor.futures.done(url_id):
-        return jsonify({'status': executor.futures._state(url_id)})
-    future = executor.futures.pop(url_id)
-    return jsonify({'status': "done", 'result': future.result()})
+    print(Thread(name=url_id).is_alive())

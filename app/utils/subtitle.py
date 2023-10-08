@@ -1,3 +1,4 @@
+from enum import unique
 import os
 import re
 import subprocess
@@ -203,18 +204,29 @@ def get_order_position(sub_pos:list, default_pos:int):
 
 def calculate_iou(box1, box2):
     # Hitung luas area masing-masing bounding box
+    area_box1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    area_box2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
     # Hitung luas area interseksi
     x_intersection = max(0, min(box1[2], box2[2]) - max(box1[0], box2[0]))
     y_intersection = max(0, min(box1[3], box2[3]) - max(box1[1], box2[1]))
-    if x_intersection > 0 and y_intersection > 0:
-        area_box1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
-        area_box2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
-        area_intersection = x_intersection * y_intersection
-        # Hitung IoU
-        iou = area_intersection / (area_box1 + area_box2 - area_intersection)
-        return round(iou, 7)
-    else:
-        return 0
+    #if x_intersection > 0 and y_intersection > 0:
+    area_intersection = x_intersection * y_intersection
+    # Hitung IoU
+    iou = area_intersection / (area_box1 + area_box2 - area_intersection)
+    return round(iou, 7)
+    #else:
+    #    return 0
+
+def calculate_initial_iou(sub_pos, frames_dict, pos):
+    list_iou = []
+    for frame_num, frame_data in frames_dict.items():
+        for obj_data in frame_data:
+            bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
+            bbox_obj = np.array([obj_data['x1'], obj_data['y1'], obj_data['x2'], obj_data['y2']])
+            iou = calculate_iou(bbox_pos, bbox_obj)
+            if iou > 0:
+                list_iou.append(iou)
+    return pos, list_iou
 
 def calculate_average_iou(sub_pos, order_pos, frames_dict_chunk):
     prob_pos = {}
@@ -249,19 +261,17 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
     position = order_pos[0]
     prev_order_pos = [x for x in order_pos]
     # check if object in one of subtitle position set to that position if that position empty for all frame
-    for frame in list(frames_dict.keys()):
-        while order_pos:
-          pos = order_pos.pop(0)
-          list_iou = []
-          for obj in frames_dict[frame]:
-              bbox_pos = (sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2'])
-              bbox_obj = (obj['x1'], obj['y1'], obj['x2'], obj['y2'])
-              iou = calculate_iou(bbox_pos, bbox_obj)
-              if iou > 0: list_iou.append(iou)
-          if len(list_iou) > 0: continue
-          else: break
-        if len(order_pos) == 0 or len(list_iou) == 0: 
-            position = pos
+    results_initial = []
+    while order_pos:
+        pos = order_pos.pop(0)
+        pool_initial = multiprocessing.Pool(processes=4)
+        result_initial = pool_initial.apply_async(calculate_initial_iou, (sub_pos, frames_dict, pos))
+        results_initial.append(result_initial)
+        pool_initial.close()
+        pool_initial.join()
+        position = pos
+        list_iou = result_initial.get()[1]
+        if len(list_iou) == 0:
             break
     # check probability of each position if all area detected set set position to the lowest average iou position
     if len(order_pos) == 0:
@@ -332,9 +342,14 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
 
         # set initial value
         frame_start = timeSub.ms_to_frames(positioned_subtitle[line].start, fps)
-        frame_end   = timeSub.ms_to_frames(positioned_subtitle[line].end, fps)    
+        frame_end   = timeSub.ms_to_frames(positioned_subtitle[line].end, fps)  
+        frames_list = []
         order_pos   = get_order_position(possible_position, default_pos)
-        if prev_position is not None and positioned_subtitle[line-1].style == 'base-bg': order_pos.insert(1, prev_position)
+        if prev_position is not None and positioned_subtitle[line-1].style == 'base-bg': 
+          order_pos.insert(1, prev_position)
+          unique_list = []
+          [unique_list.append(x) for x in order_pos if x not in unique_list]
+          order_pos = unique_list
         frames_dict = get_detected_object(label_path, frame_start, frame_end, sub_width, sub_height, class_selected)
         position    = get_best_subtitle_position(possible_position, order_pos, frames_dict) if len(frames_dict) != 0 else order_pos[0]
 

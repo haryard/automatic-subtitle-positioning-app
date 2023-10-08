@@ -23,17 +23,17 @@ def preview_video(url_path):
     if check_url == 0:
         flash("Video tidak ditemukan!", category='danger')
         return redirect(url_for('main.upload'))
-    #if not executor.futures.done(url_path):
-    #    data_db = db.execute('SELECT v.filename FROM Process AS p JOIN Video AS v ON p.video_id = v.video_id WHERE p.url_path = ?', (url_path,)).fetchone()
-    #    flash(f"Video {data_db['filename']} sedang diproses...") 
-    #    message_type = "alert-info"
-    #    completed = False
-    #    return render_template(
-    #        'preview.html', 
-    #        exist=check_url,
-    #        message_type = message_type,
-    #        completed=completed
-    #    )
+    check_subtitle_positioning = db.execute("SELECT s.positioned_subtitle_path FROM Process AS p JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id WHERE url_path = ?", (url_path,)).fetchone()[0]
+    if check_subtitle_positioning is None:
+        data_db = db.execute('SELECT v.filename FROM Process AS p JOIN Video AS v ON p.video_id = v.video_id WHERE p.url_path = ?', (url_path,)).fetchone()
+        flash(f"Video {data_db['filename']} sedang diproses...", "info") 
+        completed = False
+        return render_template(
+            'preview.html', 
+            exist=check_url,
+            completed=completed,
+            video_title=data_db['filename'],
+        )
     else:
         data_db = db.execute(
             'SELECT v.filename, v.filepath, v.height, v.width, s.preprocessed_subtitle_path, s.positioned_subtitle_path '
@@ -62,7 +62,8 @@ def preview_video(url_path):
             video_path=video_path, 
             preprocessed_subtitle_path=preprocessed_sub_path, 
             positioned_subtitle_path=positioned_sub_path,
-            url_path=url_path
+            url_path=url_path,
+            completed=True
         )
         
 @bp.route('/delete/<url_path>')
@@ -129,7 +130,8 @@ def process_subtitle_edit(url_path):
         fontColor     = request.form['fontColor']
         bgTrans       = int(request.form['transparency'])
         
-        data_db = db.execute('SELECT v.fps, v.labels_path, s.preprocessed_subtitle_path, s.positioned_subtitle_path '
+        data_db = db.execute('SELECT v.fps, v.labels_path, s.preprocessed_subtitle_path, s.positioned_subtitle_path, '
+        'p.object_detect, s.default_position '
         'FROM Process AS p '
         'JOIN Video AS v ON p.video_id = v.video_id '
         'JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id '
@@ -138,7 +140,7 @@ def process_subtitle_edit(url_path):
         subtitle_path = os.path.join(current_app.root_path, data_db['preprocessed_subtitle_path'])
         fps           = data_db['fps']
         labels_path   = os.path.join(current_app.root_path, data_db['labels_path'])
-        sub_pos_path  = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, subtitlePos, objectList)
+        sub_pos_path  = os.path.join(current_app.root_path, data_db['positioned_subtitle_path']) if (data_db['object_detect'].split(',') == objectList and data_db['default_position'] == subtitlePos) else subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, subtitlePos, objectList)
         sub_pos_path_db = data_db['positioned_subtitle_path']
         subtitle.set_style(sub_pos_path, fontColor, bgTrans)
         
