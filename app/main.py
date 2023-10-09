@@ -24,16 +24,9 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     subtitle_path_db   = subtitle_path.split("app/")[1]
     db = get_db()
     
-    frames_path_to = os.path.join('app', base_path, "frames")
-    frames_path    = video.extract_frames(video_path, subtitle_frames, frames_path_to)
-    frames_path    = frames_path.split("app/")[1]
-    frames_path_db = frames_path
-    db.execute("UPDATE Video SET frames_path = ? WHERE filepath = ?", (frames_path_db, video_path_db))
-    db.commit()
-    
     project,name   = os.path.split(base_path)
     project        = os.path.join(current_app.root_path, project)
-    labels_path    = objectDetection.detect_object(os.path.normpath(model_path), os.path.join(current_app.root_path, os.path.normpath(frames_path)), project, name)
+    labels_path    = objectDetection.detect_object(os.path.normpath(model_path), os.path.join(current_app.root_path, video_path), project, name)
     labels_path_db = labels_path.split(current_app.root_path)[1]
     labels_path_db = os.path.normpath(labels_path_db).split('/') if '/' in os.path.normpath(labels_path_db) else os.path.normpath(labels_path_db).split('\\')
     labels_path_db = ('/'.join(labels_path_db[1:]))

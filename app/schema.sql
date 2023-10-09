@@ -10,7 +10,6 @@ CREATE TABLE Video (
     fps INTEGER,
     width INTEGER,
     height INTEGER,
-    frames_path TEXT,
     labels_path TEXT
 );
 
