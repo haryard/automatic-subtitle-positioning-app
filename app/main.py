@@ -5,11 +5,11 @@ import yt_dlp
 
 from flask import Blueprint, flash, redirect, render_template, request, current_app, url_for, Markup, jsonify, copy_current_request_context
 from werkzeug.utils import secure_filename
-from flask_executor import Executor
-from threading import Thread
+import threading
 from app.db import get_db
 from app.utils import subtitle, video, objectDetection
 from app.extension import executor
+from app.extension import background_processes, stop_flags
 
 bp = Blueprint('main', __name__)
 
@@ -126,8 +126,12 @@ def upload():
             # run this in background
             @copy_current_request_context
             def background_task():
-              extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-            Thread(target=background_task, name=url_path).start()
+              while not stop_flags.get(threading.current_thread.name, False):
+                extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+                pass
+            background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
+            stop_flags[url_path] = False
+            background_processes[url_path].start()
             #extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
@@ -244,15 +248,15 @@ def youtube():
             # run this in background
             @copy_current_request_context
             def background_task():
-              extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-            Thread(target=background_task, name=url_path).start()
+              while not stop_flags.get(threading.current_thread.name, False):
+                extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+                pass
+            background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
+            stop_flags[url_path] = False
+            background_processes[url_path].start()
             #executor.submit(extract_detect_all_subtitle_frame, db, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
             return render_template("youtube.html")
                 
     return render_template("youtube.html")
-
-@bp.route('/get-result/<url_id>')
-def get_result(url_id):
-    print(Thread(name=url_id).is_alive())

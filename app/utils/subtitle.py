@@ -224,8 +224,7 @@ def calculate_initial_iou(sub_pos, frames_dict, pos):
             bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
             bbox_obj = np.array([obj_data['x1'], obj_data['y1'], obj_data['x2'], obj_data['y2']])
             iou = calculate_iou(bbox_pos, bbox_obj)
-            if iou > 0:
-                list_iou.append(iou)
+            if iou >= 0.01: list_iou.append(iou)
     return pos, list_iou
 
 def calculate_average_iou(sub_pos, order_pos, frames_dict_chunk):
@@ -237,8 +236,7 @@ def calculate_average_iou(sub_pos, order_pos, frames_dict_chunk):
                 bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                 bbox_obj = np.array([obj_data['x1'], obj_data['y1'], obj_data['x2'], obj_data['y2']])
                 iou = calculate_iou(bbox_pos, bbox_obj)
-                if iou > 0:
-                    prob_frame.append(iou)
+                if iou >= 0.01: prob_frame.append(iou)
         if prob_frame:
             average_iou   = sum(prob_frame) / len(prob_frame)
             prob_pos[pos] = average_iou

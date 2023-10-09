@@ -1,12 +1,13 @@
 import os
 import shutil
 import math
+import threading
 
 from flask import Blueprint, flash, g, jsonify, redirect, render_template, current_app, request, url_for, send_file, abort
 from app import main
 from app.db import get_db
 from app.utils import subtitle
-from app.extension import executor
+from app.extension import background_processes, stop_flags
 
 bp = Blueprint('preview', __name__, url_prefix="/preview")
 
@@ -15,16 +16,22 @@ def calculate_aspect_ratio(width, height):
     aspect_ratio = (width // gcd, height // gcd)
     return aspect_ratio
 
+@bp.route('/cancel/<url_path>')
+def cancel_process(url_path):
+    if url_path in background_processes and background_processes[url_path].is_alive():
+        stop_flags[url_path] = True
+    flash("Proses video berhasil dibatalkan", category='success')
+    return redirect(url_for('main.upload'))
+
 @bp.route('/<url_path>')
 def preview_video(url_path):
     db        = get_db()
     check_url = db.execute("SELECT COUNT(*) FROM Process WHERE url_path = ?", (url_path,)).fetchone()[0]
-    #print(executor.futures.done(url_path))
     if check_url == 0:
         flash("Video tidak ditemukan!", category='danger')
         return redirect(url_for('main.upload'))
     check_subtitle_positioning = db.execute("SELECT s.positioned_subtitle_path FROM Process AS p JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id WHERE url_path = ?", (url_path,)).fetchone()[0]
-    if check_subtitle_positioning is None:
+    if check_subtitle_positioning is None or not background_processes[url_path].is_alive():
         data_db = db.execute('SELECT v.filename FROM Process AS p JOIN Video AS v ON p.video_id = v.video_id WHERE p.url_path = ?', (url_path,)).fetchone()
         flash(f"Video {data_db['filename']} sedang diproses...", "info") 
         completed = False
@@ -154,3 +161,4 @@ def process_subtitle_edit(url_path):
         
         flash("Subtitle berhasil disesuaikan!", category='success')
         return redirect(url_for('preview.preview_video', url_path=url_path))
+

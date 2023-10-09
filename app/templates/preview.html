@@ -20,16 +20,21 @@
 {% block content %}
 <div class="container border p-4 mx-auto mt-3">
     {% with messages = get_flashed_messages(with_categories=true) %} 
-            {% if messages %} 
-                {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+        {% if messages %} 
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                {% if not completed %}
+                <button type="button" class="btn btn-danger">
+                  <a href="{{url_for('preview.cancel_process')}}">Batalkan</a>
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 {% if exist and completed %}
     <h3 class="row m-auto pb-3">
         {{ video_title }}

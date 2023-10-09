@@ -1,2 +1,3 @@
-from flask_executor import Executor
-executor = Executor()
+import threading
+background_processes = {}
+stop_flags = {}
