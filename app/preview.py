@@ -4,10 +4,11 @@ import math
 import threading
 
 from flask import Blueprint, flash, g, jsonify, redirect, render_template, current_app, request, url_for, send_file, abort
+from markupsafe import Markup
 from app import main
 from app.db import get_db
 from app.utils import subtitle
-from app.extension import background_processes, stop_flags
+from app.extension import background_processes
 
 bp = Blueprint('preview', __name__, url_prefix="/preview")
 
@@ -15,13 +16,6 @@ def calculate_aspect_ratio(width, height):
     gcd = math.gcd(width, height)
     aspect_ratio = (width // gcd, height // gcd)
     return aspect_ratio
-
-@bp.route('/cancel/<url_path>')
-def cancel_process(url_path):
-    if url_path in background_processes and background_processes[url_path].is_alive():
-        stop_flags[url_path] = True
-    flash("Proses video berhasil dibatalkan", category='success')
-    return redirect(url_for('main.upload'))
 
 @bp.route('/<url_path>')
 def preview_video(url_path):
@@ -33,7 +27,7 @@ def preview_video(url_path):
     check_subtitle_positioning = db.execute("SELECT s.positioned_subtitle_path FROM Process AS p JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id WHERE url_path = ?", (url_path,)).fetchone()[0]
     if check_subtitle_positioning is None or not background_processes[url_path].is_alive():
         data_db = db.execute('SELECT v.filename FROM Process AS p JOIN Video AS v ON p.video_id = v.video_id WHERE p.url_path = ?', (url_path,)).fetchone()
-        flash(f"Video {data_db['filename']} sedang diproses...", "info") 
+        flash(Markup(f"<h3>Video {data_db['filename']} sedang diproses</h3><p>Lama waktu proses setidaknya setengah dari durasi video</p>"), "info") 
         completed = False
         return render_template(
             'preview.html', 
@@ -73,6 +67,18 @@ def preview_video(url_path):
             completed=True
         )
         
+@bp.route('/cancel/<url_path>')
+def cancel_process(url_path):
+    if url_path in background_processes and background_processes[url_path].is_alive():
+        background_processes[url_path].stop()
+        process_path = os.path.join(current_app.root_path, 'static','uploads', url_path)
+        shutil.rmtree(process_path)
+        db = get_db()
+        db.execute('DELETE FROM Process WHERE url_path = ?', (url_path,))
+        db.commit()
+    flash("Proses video berhasil dibatalkan", category='success')
+    return redirect(url_for('main.upload'))
+
 @bp.route('/delete/<url_path>')
 def delete_file(url_path):
     db = get_db()

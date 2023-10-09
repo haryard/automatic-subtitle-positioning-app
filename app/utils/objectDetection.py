@@ -21,3 +21,19 @@ def detect_object(model_path: str, source: str, project: str, name:str):
 
     label_folder = os.path.join(project, name, "labels")
     return label_folder
+
+def rename_labels(filepath):
+    for filename in os.listdir(filepath):
+        if filename.endswith(".txt"):
+        # Extract the number part of the filename
+            number_part = filename.split("_")[1]
+
+            # Create the new filename
+            new_filename = f"{number_part}.txt"
+
+            # Construct the full paths
+            old_file_path = os.path.join(filepath, filename)
+            new_file_path = os.path.join(filepath, new_filename)
+
+            # Rename the file
+            os.rename(old_file_path, new_file_path)

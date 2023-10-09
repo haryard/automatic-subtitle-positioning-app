@@ -8,8 +8,7 @@ from werkzeug.utils import secure_filename
 import threading
 from app.db import get_db
 from app.utils import subtitle, video, objectDetection
-from app.extension import executor
-from app.extension import background_processes, stop_flags
+from app.extension import background_processes
 
 bp = Blueprint('main', __name__)
 
@@ -24,12 +23,13 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     subtitle_path_db   = subtitle_path.split("app/")[1]
     db = get_db()
     
-    project,name   = os.path.split(base_path)
+    project, name  = os.path.split(base_path)
     project        = os.path.join(current_app.root_path, project)
-    labels_path    = objectDetection.detect_object(os.path.normpath(model_path), os.path.join(current_app.root_path, video_path), project, name)
+    labels_path    = objectDetection.detect_object(os.path.normpath(model_path), os.path.join(current_app.root_path, video_path_db), project, name)
     labels_path_db = labels_path.split(current_app.root_path)[1]
     labels_path_db = os.path.normpath(labels_path_db).split('/') if '/' in os.path.normpath(labels_path_db) else os.path.normpath(labels_path_db).split('\\')
     labels_path_db = ('/'.join(labels_path_db[1:]))
+    objectDetection.rename_labels(labels_path)
     db.execute("UPDATE Video SET labels_path = ? WHERE filepath = ?", (labels_path_db, video_path_db))
     db.commit()
     
@@ -119,11 +119,8 @@ def upload():
             # run this in background
             @copy_current_request_context
             def background_task():
-              while not stop_flags.get(threading.current_thread.name, False):
                 extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-                pass
             background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
-            stop_flags[url_path] = False
             background_processes[url_path].start()
             #extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
@@ -241,11 +238,8 @@ def youtube():
             # run this in background
             @copy_current_request_context
             def background_task():
-              while not stop_flags.get(threading.current_thread.name, False):
                 extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-                pass
             background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
-            stop_flags[url_path] = False
             background_processes[url_path].start()
             #executor.submit(extract_detect_all_subtitle_frame, db, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
