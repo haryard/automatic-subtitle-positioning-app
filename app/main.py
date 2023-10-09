@@ -29,7 +29,6 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     labels_path_db = labels_path.split(current_app.root_path)[1]
     labels_path_db = os.path.normpath(labels_path_db).split('/') if '/' in os.path.normpath(labels_path_db) else os.path.normpath(labels_path_db).split('\\')
     labels_path_db = ('/'.join(labels_path_db[1:]))
-    objectDetection.rename_labels(labels_path)
     db.execute("UPDATE Video SET labels_path = ? WHERE filepath = ?", (labels_path_db, video_path_db))
     db.commit()
     
@@ -122,8 +121,6 @@ def upload():
                 extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
             background_processes[url_path].start()
-            #extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
-            #executor.submit_stored(url_path, extract_detect_all_subtitle_frame, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
     return render_template("upload.html")
@@ -158,7 +155,7 @@ def check_link():
         else:
             subtitles     = check_yt_subtitles(info_dict, 'subtitles') if check_yt_subtitles(info_dict, 'subtitles') else check_yt_subtitles(info_dict, 'automatic_captions')
             subtitle_type = "Subtitle" if check_yt_subtitles(info_dict, 'subtitles') else "Subtitle otomatis"
-            flash((subtitle_type + " ditemukan untuk video " + info_dict.get('title')), category='info')
+            flash((f"{subtitle_type} ditemukan untuk video `{info_dict.get('title')}`"), category='info')
             youtube_confirm = True
             return render_template("youtube.html", confirm=youtube_confirm, youtube_link=link, subtitles=subtitles)       
 
@@ -241,7 +238,6 @@ def youtube():
                 extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
             background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
             background_processes[url_path].start()
-            #executor.submit(extract_detect_all_subtitle_frame, db, os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, os.path.join('app', base_path), model_path, objectList)
             url_preview = url_for('preview.preview_video', url_path=url_path)
             flash((Markup(f'Video sedang diproses, cek progress di <a href="{url_preview}">sini</a>')), category='success')
             return render_template("youtube.html")

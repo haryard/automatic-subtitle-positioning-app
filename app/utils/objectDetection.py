@@ -20,20 +20,11 @@ def detect_object(model_path: str, source: str, project: str, name:str):
     subprocess.run(command, check=True)
 
     label_folder = os.path.join(project, name, "labels")
-    return label_folder
-
-def rename_labels(filepath):
-    for filename in os.listdir(filepath):
+    for filename in os.listdir(label_folder):
         if filename.endswith(".txt"):
-        # Extract the number part of the filename
-            number_part = filename.split("_")[1]
-
-            # Create the new filename
-            new_filename = f"{number_part}.txt"
-
-            # Construct the full paths
-            old_file_path = os.path.join(filepath, filename)
-            new_file_path = os.path.join(filepath, new_filename)
-
-            # Rename the file
+            number_part = filename.split("_")[-1]
+            new_filename = number_part
+            old_file_path = os.path.join(label_folder, filename)
+            new_file_path = os.path.join(label_folder, new_filename)
             os.rename(old_file_path, new_file_path)
+    return label_folder

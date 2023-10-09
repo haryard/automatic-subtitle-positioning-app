@@ -29,10 +29,6 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
                 {% endif %}
-                {% if not completed %}
-                <hr>
-                <a href="{{url_for('preview.cancel_process', url_path=url_path)}}" class="btn btn-danger">Batalkan</a>
-                {% endif %}
             </div>
             {% endfor %}
         {% endif %}

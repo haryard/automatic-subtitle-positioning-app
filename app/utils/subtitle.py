@@ -59,26 +59,6 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
                 sub_index = sub_index + 1
         new_subtitle.info['PlayResX'] = width 
         new_subtitle.info['PlayResY'] = height
-    elif("\\N" not in subtitle[0].text):
-        sub_index = 0
-        while sub_index <= len(subtitle):
-            if sub_index + 2 > len(subtitle) - 1:
-                start = subtitle[-1].start
-                end = subtitle[-1].end
-                text = subtitle[-1].text
-                new_line = SSAEvent(start=start, end=end, text=text)
-                new_subtitle.append(new_line)
-                break
-            if "\\N" not in (subtitle[sub_index].text and subtitle[sub_index].text):
-                start = subtitle[sub_index].start
-                end = subtitle[sub_index+1].end
-                text = subtitle[sub_index].text + "\\N" + subtitle[sub_index + 1].text
-                new_line = SSAEvent(start=start, end=end, text=text)
-                new_subtitle.append(new_line)
-                sub_index = sub_index + 2
-            else: sub_index = sub_index + 1
-        new_subtitle.info['PlayResX'] = width 
-        new_subtitle.info['PlayResY'] = height
     else:
         new_subtitle = subtitle
         
@@ -196,10 +176,18 @@ def get_order_position(sub_pos:list, default_pos:int):
     list_sub_pos   = list(sub_pos.keys())
     sub_pos_matrix = [list_sub_pos[i:i+(len(list_sub_pos)//3)] for i in range(0, len(list_sub_pos), 3)]
     order_pos      = []
-    for row in (sub_pos_matrix if default_pos == 0 else reversed(sub_pos_matrix)):
-        order_pos.append(row[1])
-        order_pos.append(row[2])
-        order_pos.append(row[0])
+    if default_pos == 1: reversed(sub_pos_matrix)
+    for row in range(len(sub_pos_matrix)):
+      order_pos.append(sub_pos_matrix[row][1])
+      order_pos.append(sub_pos_matrix[row][2])
+      order_pos.append(sub_pos_matrix[row][0])
+      if row > (len(sub_pos_matrix)/2):
+        reversed(sub_pos_matrix)
+        for row in range(int(len(sub_pos_matrix)/2)):
+          order_pos.append(sub_pos_matrix[row][1])
+          order_pos.append(sub_pos_matrix[row][2])
+          order_pos.append(sub_pos_matrix[row][0])
+        break  
     return order_pos
 
 def calculate_iou(box1, box2):
