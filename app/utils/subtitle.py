@@ -323,7 +323,6 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
           unique_list = []
           [unique_list.append(x) for x in order_pos if x not in unique_list]
           order_pos = unique_list
-        print(order_pos)
         frames_dict = get_detected_object(label_path, frame_start, frame_end, sub_width, sub_height, class_selected)
         position    = get_best_subtitle_position(possible_position, order_pos, frames_dict) if len(frames_dict) != 0 else order_pos[0]
 
