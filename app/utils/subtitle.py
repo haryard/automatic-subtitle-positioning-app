@@ -116,14 +116,14 @@ def get_detected_object(label_path: str, frame_start: int, frame_end: int, width
                         x1, y1 = x_mid - w/2, y_mid - h/2
                         x2, y2 = x_mid + w/2, y_mid + h/2
                         data_list.append({
-                        'x_mid' : round(x_mid, 7),
-                        'y_mid' : round(y_mid, 7),
-                        'width' : round(w, 7),
-                        'height': round(h, 7),
-                        'x1': round(x1, 7),
-                        'x2': round(x2, 7),
-                        'y1': round(y1, 7),
-                        'y2': round(y2, 7)})
+                        'x_mid' : round(x_mid, 2),
+                        'y_mid' : round(y_mid, 2),
+                        'width' : round(w, 2),
+                        'height': round(h, 2),
+                        'x1': round(x1, 2),
+                        'x2': round(x2, 2),
+                        'y1': round(y1, 2),
+                        'y2': round(y2, 2)})
                     else: continue
             if len(data_list) > 0: data_dict[file_number] = data_list
             else: continue
@@ -176,34 +176,21 @@ def get_order_position(sub_pos:list, default_pos:int):
     list_sub_pos   = list(sub_pos.keys())
     sub_pos_matrix = [list_sub_pos[i:i+(len(list_sub_pos)//3)] for i in range(0, len(list_sub_pos), 3)]
     order_pos      = []
-    if default_pos == 1: reversed(sub_pos_matrix)
-    for row in range(len(sub_pos_matrix)):
-      order_pos.append(sub_pos_matrix[row][1])
-      order_pos.append(sub_pos_matrix[row][2])
-      order_pos.append(sub_pos_matrix[row][0])
-      if row > (len(sub_pos_matrix)/2):
-        reversed(sub_pos_matrix)
-        for row in range(int(len(sub_pos_matrix)/2)):
-          order_pos.append(sub_pos_matrix[row][1])
-          order_pos.append(sub_pos_matrix[row][2])
-          order_pos.append(sub_pos_matrix[row][0])
-        break  
+    
+    for row in (sub_pos_matrix if default_pos == 0 else reversed(sub_pos_matrix)):
+      order_pos.append(row[1])
+      order_pos.append(row[2])
+      order_pos.append(row[0])
     return order_pos
 
 def calculate_iou(box1, box2):
-    # Hitung luas area masing-masing bounding box
     area_box1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
     area_box2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
-    # Hitung luas area interseksi
     x_intersection = max(0, min(box1[2], box2[2]) - max(box1[0], box2[0]))
     y_intersection = max(0, min(box1[3], box2[3]) - max(box1[1], box2[1]))
-    #if x_intersection > 0 and y_intersection > 0:
     area_intersection = x_intersection * y_intersection
-    # Hitung IoU
     iou = area_intersection / (area_box1 + area_box2 - area_intersection)
     return round(iou, 7)
-    #else:
-    #    return 0
 
 def calculate_initial_iou(sub_pos, frames_dict, pos):
     list_iou = []
@@ -212,7 +199,7 @@ def calculate_initial_iou(sub_pos, frames_dict, pos):
             bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
             bbox_obj = np.array([obj_data['x1'], obj_data['y1'], obj_data['x2'], obj_data['y2']])
             iou = calculate_iou(bbox_pos, bbox_obj)
-            if iou >= 0.01: list_iou.append(iou)
+            if iou > 0.01: list_iou.append(iou)
     return pos, list_iou
 
 def calculate_average_iou(sub_pos, order_pos, frames_dict_chunk):
@@ -224,7 +211,7 @@ def calculate_average_iou(sub_pos, order_pos, frames_dict_chunk):
                 bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                 bbox_obj = np.array([obj_data['x1'], obj_data['y1'], obj_data['x2'], obj_data['y2']])
                 iou = calculate_iou(bbox_pos, bbox_obj)
-                if iou >= 0.01: prob_frame.append(iou)
+                if iou > 0.01: prob_frame.append(iou)
         if prob_frame:
             average_iou   = sum(prob_frame) / len(prob_frame)
             prob_pos[pos] = average_iou
@@ -332,7 +319,7 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
         frames_list = []
         order_pos   = get_order_position(possible_position, default_pos)
         if prev_position is not None and positioned_subtitle[line-1].style == 'base-bg': 
-          order_pos.insert(1, prev_position)
+          order_pos.insert(3, prev_position)
           unique_list = []
           [unique_list.append(x) for x in order_pos if x not in unique_list]
           order_pos = unique_list
