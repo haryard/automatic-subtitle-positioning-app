@@ -7,7 +7,7 @@ from flask import Blueprint, flash, redirect, render_template, request, current_
 from werkzeug.utils import secure_filename
 import threading
 from app.db import get_db
-from app.utils import subtitle, video, objectDetection
+from app.utils import subtitle as sub_fn, video as vid_fn, objectDetection
 from app.extension import background_processes
 
 bp = Blueprint('main', __name__)
@@ -18,7 +18,7 @@ def generate_unique_random_url(db):
         count = db.execute("SELECT COUNT(*) FROM Process WHERE url_path = ?", (random_url,)).fetchone()[0]
         if count == 0: return random_url
         
-def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_frames, default_pos, base_path, model_path, class_list):
+def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, default_pos, base_path, model_path, class_list):
     video_path_db      = video_path.split("app/")[1]
     subtitle_path_db   = subtitle_path.split("app/")[1]
     db = get_db()
@@ -32,7 +32,7 @@ def extract_detect_all_subtitle_frame(video_path, subtitle_path, fps, subtitle_f
     db.execute("UPDATE Video SET labels_path = ? WHERE filepath = ?", (labels_path_db, video_path_db))
     db.commit()
     
-    sub_pos_path    = subtitle.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
+    sub_pos_path    = sub_fn.get_positioned_subtitle(subtitle_path, fps, labels_path, default_pos, class_list)
     sub_pos_path_db = os.path.normpath(sub_pos_path).split('/') if '/' in os.path.normpath(sub_pos_path) else os.path.normpath(sub_pos_path).split('\\')
     sub_pos_path_db = ('/'.join(sub_pos_path_db[1:]))
     db.execute("UPDATE Subtitle SET positioned_subtitle_path = ? WHERE preprocessed_subtitle_path = ?", (sub_pos_path_db, subtitle_path_db))
@@ -83,23 +83,26 @@ def upload():
             base_path     = f"static/uploads/{url_path}"
             video_path    = f"{base_path}/video/{video_filename}"
             subtitle_path = f"{base_path}/subtitle/{subtitle_filename}"
+            os.makedirs(os.path.dirname(os.path.join('app', base_path)), exist_ok=True)
+            os.makedirs(os.path.dirname(os.path.join('app', video_path)), exist_ok=True)
+            os.makedirs(os.path.dirname(os.path.join('app', subtitle_path)), exist_ok=True)
             
             video.save(os.path.join('app', video_path))
             subtitle.save(os.path.join('app', subtitle_path))
             
             # video part
-            fps    = video.get_fps(os.path.join('app', video_path))
-            width  = video.get_width(os.path.join('app', video_path))
-            height = video.get_height(os.path.join('app', video_path))
+            fps    = vid_fn.get_fps(os.path.join('app', video_path))
+            width  = vid_fn.get_width(os.path.join('app', video_path))
+            height = vid_fn.get_height(os.path.join('app', video_path))
             
             # subtitle part
-            preprocessed_subtitle_path    = subtitle.process_convert_to_ass(os.path.join('app', subtitle_path), width, height)
+            preprocessed_subtitle_path    = sub_fn.process_convert_to_ass(os.path.join('app', subtitle_path), width, height)
             preprocessed_subtitle_path_db = os.path.normpath(preprocessed_subtitle_path).split('/') if '/' in os.path.normpath(preprocessed_subtitle_path) else os.path.normpath(preprocessed_subtitle_path).split('\\')
             preprocessed_subtitle_path_db = "/".join(preprocessed_subtitle_path_db[1:])
-            subtitle_frames               = subtitle.process_frames_from_subtitle(preprocessed_subtitle_path, fps)
+            #subtitle_frames               = sub_fn.process_frames_from_subtitle(preprocessed_subtitle_path, fps)
             
             # set subtitle style
-            subtitle.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
+            sub_fn.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
             
             db = get_db()
             db.execute("INSERT INTO Video (filename, filepath, fps, width, height) VALUES (?, ?, ?, ?, ?)", (video_name, video_path, fps, width, height))
@@ -118,7 +121,7 @@ def upload():
             # run this in background
             @copy_current_request_context
             def background_task():
-                extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+                extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitlePos, base_path, model_path, objectList)
             background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
             background_processes[url_path].start()
             url_preview = url_for('preview.preview_video', url_path=url_path)
@@ -173,8 +176,8 @@ def youtube():
             db        = get_db()
             url_path  = generate_unique_random_url(db)
             sub_code  = request.form['subtitle']
-            video_name = info_dict['title']
-            subtitle_name = f"{info_dict['title']}.{sub_code}"
+            video_name        = info_dict['title']
+            subtitle_name     = f"{info_dict['title']}.{sub_code}"
             video_filename    = secure_filename(f"{info_dict['title']}.mp4")
             subtitle_filename = secure_filename(f"{info_dict['title']}.{sub_code}.srv3")
             subtitle_type = "Subtitle" if check_yt_subtitles(info_dict, 'subtitles') else "Subtitle otomatis"
@@ -206,18 +209,18 @@ def youtube():
             os.rename(os.path.join('app', base_path, video_filename), os.path.join('app', video_path))
             os.rename(os.path.join('app', base_path, subtitle_filename), os.path.join('app', subtitle_path))
             # video part
-            fps    = video.get_fps(os.path.join('app', video_path))
-            width  = video.get_width(os.path.join('app', video_path))
-            height = video.get_height(os.path.join('app', video_path))
+            fps    = vid_fn.get_fps(os.path.join('app', video_path))
+            width  = vid_fn.get_width(os.path.join('app', video_path))
+            height = vid_fn.get_height(os.path.join('app', video_path))
             
             # subtitle part
-            preprocessed_subtitle_path    = subtitle.process_convert_to_ass(os.path.join('app', subtitle_path), width, height)
+            preprocessed_subtitle_path    = sub_fn.process_convert_to_ass(os.path.join('app', subtitle_path), width, height)
             preprocessed_subtitle_path_db = os.path.normpath(preprocessed_subtitle_path).split('/') if '/' in os.path.normpath(preprocessed_subtitle_path) else os.path.normpath(preprocessed_subtitle_path).split('\\')
             preprocessed_subtitle_path_db = "/".join(preprocessed_subtitle_path_db[1:])
-            subtitle_frames               = subtitle.process_frames_from_subtitle(preprocessed_subtitle_path, fps)
+            #subtitle_frames               = sub_fn.process_frames_from_subtitle(preprocessed_subtitle_path, fps)
             
             # set subtitle style
-            subtitle.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
+            sub_fn.set_style(preprocessed_subtitle_path, fontColor, bgTrans)
             
             db = get_db()
             db.execute("INSERT INTO Video (filename, filepath, fps, width, height) VALUES (?, ?, ?, ?, ?)", (video_name, video_path, fps, width, height))
@@ -235,7 +238,7 @@ def youtube():
             # run this in background
             @copy_current_request_context
             def background_task():
-                extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitle_frames, subtitlePos, base_path, model_path, objectList)
+                extract_detect_all_subtitle_frame(os.path.join('app', video_path), preprocessed_subtitle_path, fps, subtitlePos, base_path, model_path, objectList)
             background_processes[url_path] = threading.Thread(target=background_task, name=url_path)
             background_processes[url_path].start()
             url_preview = url_for('preview.preview_video', url_path=url_path)

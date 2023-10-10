@@ -24,13 +24,13 @@
             {% endif %}
         {% endwith %}
         <hr>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <form action="{{url_for('main.upload')}}" method="post" enctype="multipart/form-data">
             <div class="form-group row">
                 <div class="col-md mt-2">
                     <label for="video">Video</label>
                     <br>
                     <div class="custom-file">
-                        <input class="custom-file-input" type="file" name="video" accept=".mp4, .mkv, .webm" required>
+                        <input class="custom-file-input" id="video" type="file" name="video" accept=".mp4, .mkv" required>
                         <label class="custom-file-label" for="video">Pilih berkas video</label>
                     </div>
                     <small class="form-text text-muted">Format file yang dapat diproses MP4 atau MKV</small>
@@ -40,8 +40,8 @@
                     <label for="subtitle">Subtitle</label>
                     <br>
                     <div class="custom-file">
-                        <input class="custom-file-input" type="file" name="subtitle" accept=".srt, .ass, .srv3, .vtt" required>
-                        <label class="custom-file-label" for="video">Pilih berkas subtitle</label>
+                        <input class="custom-file-input" id="subtitle" type="file" name="subtitle" accept=".srt, .ass, .srv3, .vtt" required>
+                        <label class="custom-file-label" for="subtitle">Pilih berkas subtitle</label>
                     </div>
                     <small class="form-text text-muted">Format file yang dapat diproses SRT, ASS, SRV3, dan VTT</small>
                     <small class="form-text text-muted">Catatan: Gunakan format subtitle SRV3 jikaa subtitle diambil dari Youtube</small>
@@ -176,6 +176,15 @@
             $("#fontColor").val(hexValue);
         });
     });
-
+    $('#video').on('change',function(){
+        var fileName = $(this).val();
+        var cleanFileName = fileName.replace('C:\\fakepath\\', " ");
+        $(this).next('.custom-file-label').html(cleanFileName);
+    })
+    $('#subtitle').on('change',function(){
+        var fileName = $(this).val();
+        var cleanFileName = fileName.replace('C:\\fakepath\\', " ");
+        $(this).next('.custom-file-label').html(cleanFileName);
+    })
 </script>
 {% endblock script %}

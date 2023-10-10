@@ -25,7 +25,7 @@ def preview_video(url_path):
         flash("Video tidak ditemukan!", category='danger')
         return redirect(url_for('main.upload'))
     check_subtitle_positioning = db.execute("SELECT s.positioned_subtitle_path FROM Process AS p JOIN Subtitle AS s ON p.subtitle_id = s.subtitle_id WHERE url_path = ?", (url_path,)).fetchone()[0]
-    if check_subtitle_positioning is None or not background_processes[url_path].is_alive():
+    if check_subtitle_positioning is None:
         data_db = db.execute('SELECT v.filename FROM Process AS p JOIN Video AS v ON p.video_id = v.video_id WHERE p.url_path = ?', (url_path,)).fetchone()
         flash(Markup(f"<h3>Video `{data_db['filename']}` sedang diproses</h3><p>Lama waktu proses setidaknya setengah dari durasi video</p>"), "info") 
         completed = False

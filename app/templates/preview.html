@@ -40,7 +40,7 @@
     <div class="row m-auto">
         <div class="embed-responsive embed-responsive-{{aspect_ratio[0]}}by{{aspect_ratio[1]}} col-lg-10">
             <video class="embed-responsive-item" style="height:100%;width:100%;" width="{{ width }}" height="{{ height }}" controls="controls" preload="none">
-                <source type"video/{{ extension }}" src="{{ url_for('static', filename=video_path) }}">
+                <source type"video/mp4" src="{{ url_for('static', filename=video_path) }}">
                 <track src="{{ url_for('static', filename=preprocessed_subtitle_path) }}" srclang="en" label="Default" kind="subtitles" id="default_sub" type="application/x-ass">
                 <track src="{{ url_for('static', filename=positioned_subtitle_path) }}" srclang="id" label="Positioned" kind="subtitles" id="positioned_sub" type="application/x-ass">
             </video>
