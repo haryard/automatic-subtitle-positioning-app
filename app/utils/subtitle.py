@@ -198,9 +198,9 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
     # check if object in one of subtitle position set to that position if that position empty for all frame
     while order_pos:
         pos = order_pos.pop(0)
-        for frame in frames_list:
+        for frame in range(len(frames_list)):
             list_iou = []
-            for obj in frames_dict[frame]:
+            for obj in frames_dict[frames_list[frame]]:
                 bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                 bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
                 iou = calculate_iou(bbox_pos, bbox_obj)
@@ -221,8 +221,8 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
         prob_pos = {}
         for pos in prev_order_pos:
             prob_frame = []
-            for frame in frames_list:
-                for obj in frames_dict[frame]:
+            for frame in range(len(frames_list)):
+                for obj in frames_dict[frames_list[frame]]:
                     bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                     bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
                     iou = calculate_iou(bbox_pos, bbox_obj)
