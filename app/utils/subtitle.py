@@ -4,7 +4,6 @@ import re
 import subprocess
 import pysubs2
 import numpy as np
-import multiprocessing
 from pysubs2 import SSAEvent
 from pysubs2 import time as timeSub
 from flask import current_app
@@ -193,28 +192,36 @@ def calculate_iou(box1, box2):
     return round(iou, 7)
 
 def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list):
-    position = order_pos[0]
+    position       = order_pos[0]
     prev_order_pos = [x for x in order_pos]
+    frames_list    = list(frames_dict.keys())
     # check if object in one of subtitle position set to that position if that position empty for all frame
     while order_pos:
         pos = order_pos.pop(0)
-        list_iou = []
-        for frame in list(frames_dict.keys()):
+        for frame in frames_list:
+            list_iou = []
             for obj in frames_dict[frame]:
                 bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                 bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
                 iou = calculate_iou(bbox_pos, bbox_obj)
                 if iou >= 0.01: list_iou.append(iou)
-        if len(list_iou) == 0: 
-            position = pos
-            break  
-        else: continue
+            if len(list_iou) == 0 and frames_list[frame] == frames_list[-1]: 
+                position = pos
+                break
+            elif len(list_iou) > 0: 
+                break  
+            else: 
+                continue
+        if position == pos: 
+            break
+        else: 
+            continue
     # check probability of each position if all area detected set set position to the lowest average iou position
     if len(order_pos) == 0:
         prob_pos = {}
         for pos in prev_order_pos:
             prob_frame = []
-            for frame in list(frames_dict.keys()):
+            for frame in frames_list:
                 for obj in frames_dict[frame]:
                     bbox_pos = np.array([sub_pos[pos]['x1'], sub_pos[pos]['y1'], sub_pos[pos]['x2'], sub_pos[pos]['y2']])
                     bbox_obj = np.array([obj['x1'], obj['y1'], obj['x2'], obj['y2']])
