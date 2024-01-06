@@ -7,7 +7,7 @@ import numpy as np
 from pysubs2 import SSAEvent
 from pysubs2 import time as timeSub
 from flask import current_app
-
+ 
 def hex_to_rgba(hex_color, alpha_percent):
     hex_color = hex_color.lstrip('#')
     red = int(hex_color[0:2], 16)
@@ -15,7 +15,7 @@ def hex_to_rgba(hex_color, alpha_percent):
     blue = int(hex_color[4:6], 16)
     alpha = int(255 - (alpha_percent * 255 / 100))
     return red, green, blue, alpha
-
+ 
 def process_convert_to_ass(subtitle_path: str, width: int, height: int):
     subtitle_name = os.path.splitext(os.path.basename(subtitle_path))[0]
     subtitle_dir = os.path.dirname(subtitle_path)
@@ -84,20 +84,7 @@ def process_convert_to_ass(subtitle_path: str, width: int, height: int):
     new_subtitle.save(new_subtitle_path)
     
     return new_subtitle_path
-
-def process_frames_from_subtitle(subtitle_file: str, video_fps: float):
-    subtitle = pysubs2.load(subtitle_file)
-    frames_subtitle = []
-
-    for line in subtitle:
-        frame_start = int(float(timeSub.ms_to_frames(line.start, video_fps)))
-        frame_end = int(float(timeSub.ms_to_frames(line.end, video_fps)))
-        for line_frame in range(frame_start, frame_end + 1):
-            if line_frame in frames_subtitle: continue
-            else: frames_subtitle.append(line_frame)
-
-    return list(frames_subtitle)
-
+ 
 def get_detected_object(label_path: str, frame_start: int, frame_end: int, width: int, height: int, class_list: list):
     data_dict = {}
     file_names = [file for file in os.listdir(label_path) if file.endswith('.txt')]
@@ -126,18 +113,17 @@ def get_detected_object(label_path: str, frame_start: int, frame_end: int, width
                     else: continue
             if len(data_list) > 0: data_dict[file_number] = data_list
             else: continue
-
+ 
     return data_dict
-
+ 
 def get_possible_subtitle_position(width: int, height:int):
     box_width = 0.6 * width
     box_height = 0.12 * height
-
     margin_top = (height - (8 * box_height)) / 2
     margin_top = round(margin_top, 2)
-
+ 
     box_info = {}
-
+ 
     for row in range(8):
         for col in range(3):
             box_count = row * 3 + col
@@ -148,7 +134,7 @@ def get_possible_subtitle_position(width: int, height:int):
             y_end   = y_start + box_height
             x_mid   = (x_start + x_end) / 2
             y_mid   = (y_start + y_end) / 2
-
+ 
             x_mid_percent   = round(x_mid / width, 2)
             y_mid_percent   = round(y_mid / height, 2)
             width_percent   = round(box_width / width, 2)
@@ -157,7 +143,7 @@ def get_possible_subtitle_position(width: int, height:int):
             x_end_percent   = round(x_end / width, 2)
             y_start_percent = round(y_start / height, 2)
             y_end_percent   = round(y_end / height, 2)
-
+ 
             box_info[box_count + 1] = ({
             'x_mid': x_mid_percent,
             'y_mid': y_mid_percent,
@@ -168,20 +154,19 @@ def get_possible_subtitle_position(width: int, height:int):
             'y1': y_start_percent,
             'y2': y_end_percent
             })
-
+ 
     return box_info
-
+ 
 def get_order_position(sub_pos:list, default_pos:int):
     list_sub_pos   = list(sub_pos.keys())
     sub_pos_matrix = [list_sub_pos[i:i+(len(list_sub_pos)//3)] for i in range(0, len(list_sub_pos), 3)]
     order_pos      = []
-    
     for row in (sub_pos_matrix if default_pos == 0 else reversed(sub_pos_matrix)):
       order_pos.append(row[1])
       order_pos.append(row[2])
       order_pos.append(row[0])
     return order_pos
-
+ 
 def calculate_iou(box1, box2):
     area_box1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
     area_box2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
@@ -190,7 +175,7 @@ def calculate_iou(box1, box2):
     area_intersection = x_intersection * y_intersection
     iou = area_intersection / (area_box1 + area_box2 - area_intersection)
     return round(iou, 7)
-
+ 
 def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list):
     position       = order_pos[0]
     prev_order_pos = [x for x in order_pos]
@@ -212,9 +197,9 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
                 break  
             else: 
                 continue
-        if position == pos: 
+        if len(list_iou) == 0 and frames_list[frame] == frames_list[-1]:
             break
-        else: 
+        else:
             continue
     # check probability of each position if all area detected set set position to the lowest average iou position
     if len(order_pos) == 0:
@@ -234,54 +219,47 @@ def get_best_subtitle_position(sub_pos: list, order_pos: list, frames_dict: list
             prob_pos[pos] = average_iou
         position = min(prob_pos, key=prob_pos.get)
     return position
-
+ 
 def get_postioned_ass_tags(sub_pos: list, position: int, width:int, height: int, margin_x:int):
     an_tag = ""
     pos_tag = ""
     list_sub_pos   = list(sub_pos.keys())
     sub_pos_matrix = [list_sub_pos[i:i+(len(list_sub_pos)//3)] for i in range(0, len(list_sub_pos), 3)]
-    if position == sub_pos_matrix[0][0]: an_tag = "\\an7"
-    elif position == sub_pos_matrix[0][1]: an_tag = "\\an8"
-    elif position == sub_pos_matrix[0][2]: an_tag = "\\an9"
-    elif position == sub_pos_matrix[-1][0]: an_tag = "\\an1"
-    elif position == sub_pos_matrix[-1][1]: an_tag = "\\an2"
-    elif position == sub_pos_matrix[-1][2]: an_tag = "\\an3"
-    else:
-        for row_left in range(1, len(sub_pos_matrix)-2):
-            if position == sub_pos_matrix[row_left][0]:
-                an_tag = "\\an4"
-                pos_tag = f"\\pos({margin_x}, {round(sub_pos[position]['y_mid'] * height, 2)})"
-            elif position == sub_pos_matrix[row_left][1]:
-                an_tag = "\\an5"
-                pos_tag = f"\\pos({round(sub_pos[position]['x_mid'] * width, 2)}, {round(sub_pos[position]['y_mid'] * height, 2)})"
-            elif position == sub_pos_matrix[row_left][2]:
-                an_tag = "\\an6"
-                pos_tag = f"\\pos({width - margin_x}, {round(sub_pos[position]['y_mid'] * height, 2)})"
-
+    for row_left in range(len(sub_pos_matrix)):
+        if position == sub_pos_matrix[row_left][0]:
+            an_tag = "\\an4"
+            pos_tag = f"\\pos({margin_x}, {round(sub_pos[position]['y_mid'] * height, 2)})"
+        elif position == sub_pos_matrix[row_left][1]:
+            an_tag = "\\an5"
+            pos_tag = f"\\pos({round(sub_pos[position]['x_mid'] * width, 2)}, {round(sub_pos[position]['y_mid'] * height, 2)})"
+        elif position == sub_pos_matrix[row_left][2]:
+            an_tag = "\\an6"
+            pos_tag = f"\\pos({width - margin_x}, {round(sub_pos[position]['y_mid'] * height, 2)})"
+ 
     ass_tags = f"{an_tag}{pos_tag}"
     return ass_tags
-
+ 
 def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, default_pos: int, class_selected: list):
     # parsing subtitle name and dir
     sub_dir  = os.path.dirname(subtitle_path)
     sub_name = os.path.splitext(os.path.basename(subtitle_path))[0]
-
+ 
     # load and initialize generated positioned subtitle
     subtitle                     = pysubs2.load(subtitle_path)
     positioned_subtitle          = subtitle
     sub_width, sub_height        = int(subtitle.info['PlayResX']), int(subtitle.info['PlayResY'])
     margin_x, margin_y           = positioned_subtitle.styles["base"].marginl, positioned_subtitle.styles["base"].marginv
-
+ 
     # set subtitle position
     possible_position = get_possible_subtitle_position(sub_width, sub_height)
     prev_position     = None
-
+ 
     # process subtitle
     for line in range(len(positioned_subtitle)):
         # if pattern found in that line continue to next line
         pattern_positioning_tag = r'\\(an|pos|move)([1-9]|\((((\d+(\.\d+)?),*){2})(((\d+(\.\d+)?),*){2})?((\d+,*){2})?\))'
         if re.search(pattern_positioning_tag, positioned_subtitle[line].text) is not None: continue
-
+ 
         # set initial value
         frame_start = timeSub.ms_to_frames(positioned_subtitle[line].start, fps)
         frame_end   = timeSub.ms_to_frames(positioned_subtitle[line].end, fps)  
@@ -294,7 +272,7 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
           order_pos = unique_list
         frames_dict = get_detected_object(label_path, frame_start, frame_end, sub_width, sub_height, class_selected)
         position    = get_best_subtitle_position(possible_position, order_pos, frames_dict) if len(frames_dict) != 0 else order_pos[0]
-
+ 
         # positioning subtitle
         prev_position = position
         ass_tag   = get_postioned_ass_tags(possible_position, position, sub_width, sub_height, margin_x)
@@ -303,22 +281,18 @@ def get_positioned_subtitle(subtitle_path: str, fps: float, label_path: str, def
             positioned_subtitle[line].style = "base-bg"
         else: 
             positioned_subtitle[line].style = "base"
-
+ 
     positioned_subtitle.save(f'{sub_dir}/{sub_name}_positioned.ass')
     return f'{sub_dir}/{sub_name}_positioned.ass'
-
+ 
 def set_style(subtitle_path: str, font_color: str, background_transparency: int):
     subtitle = pysubs2.load(subtitle_path)
     fontr, fontg, fontb, bgalpha = hex_to_rgba(font_color, background_transparency)
-    
     style_1 = subtitle.styles["base"].copy()
     style_2 = subtitle.styles["base-bg"].copy()
     style_1.primarycolor = pysubs2.Color(fontr,fontg,fontb)
     style_2.primarycolor = pysubs2.Color(fontr,fontg,fontb)
     style_2.backcolor    = pysubs2.Color(0,0,0,bgalpha)
-    
     subtitle.styles["base"]    = style_1
     subtitle.styles["base-bg"] = style_2 
     subtitle.save(subtitle_path)
-    
-    
