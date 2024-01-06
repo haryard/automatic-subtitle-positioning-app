@@ -12,4 +12,4 @@ tqdm>=4.41.0
 protobuf<4.21.3
 yt-dlp==2023.9.24
 pysubs2==1.6.1
-Flask==2.3.3
+Flask<=2.3.3
